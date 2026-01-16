@@ -3,24 +3,27 @@
 import { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`
-  /* CSS Reset Básico */
+  /* CSS Reset Básico - Mínimo para não conflitar com Tailwind */
   * {
-    margin: 0;
-    padding: 0;
     box-sizing: border-box;
   }
-
-  body {
-    background-color: ${props => props.theme.colors.background};
-    color: ${props => props.theme.colors.text};
-    font-family: ${props => props.theme.fonts.main};
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  
+  /* Remover qualquer espaço no topo */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+  
+  #root {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
   }
 
-  /* Adicionar outros estilos globais aqui se necessário */
+  /* Links */
   a {
-    color: ${props => props.theme.colors.primary};
     text-decoration: none;
   }
 `;

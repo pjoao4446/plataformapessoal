@@ -1,95 +1,73 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { supabase } from '../lib/supabase';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
-type Role = 'aluno' | 'professor' | 'admin';
-
-type User = { 
-  id: number; 
-  name: string; 
-  email: string; 
-  role: Role;
-  avatar_path?: string;
-  phone?: string;
-  bio?: string;
-  location?: string;
-  website?: string;
-  linkedin?: string;
-  github?: string;
+type User = {
+  id: string;
+  email: string;
+  name?: string;
+  avatar_url?: string;
 } | null;
 
 type AuthContextValue = {
   user: User;
-  token: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, role?: Role) => Promise<void>;
-  logout: () => void;
-  updateUser: (userData: Partial<User>) => void;
+  session: Session | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User>(null);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  async function fetchMe(t: string) {
-    const res = await fetch('http://localhost:4000/auth/me', {
-      headers: { Authorization: `Bearer ${t}` },
+  useEffect(() => {
+    // Verificar sessão inicial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ? {
+        id: session.user.id,
+        email: session.user.email || '',
+        name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+        avatar_url: session.user.user_metadata?.avatar_url,
+      } : null);
+      setLoading(false);
     });
-    if (res.ok) {
-      const data = await res.json();
-      setUser(data.user);
-    } else {
-      setUser(null);
-      setToken(null);
-      localStorage.removeItem('token');
-    }
-  }
 
-  async function login(email: string, password: string) {
-    const res = await fetch('http://localhost:4000/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+    // Ouvir mudanças de autenticação
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ? {
+        id: session.user.id,
+        email: session.user.email || '',
+        name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+        avatar_url: session.user.user_metadata?.avatar_url,
+      } : null);
+      setLoading(false);
     });
-    if (!res.ok) throw new Error('Falha no login');
-    const data = await res.json();
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
-    setUser(data.user);
-  }
 
-  async function register(name: string, email: string, password: string, role?: Role) {
-    const res = await fetch('http://localhost:4000/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password, role }),
-    });
-    if (!res.ok) throw new Error('Falha no registro');
-    const data = await res.json();
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
-    setUser(data.user);
-  }
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
-  function logout() {
-    localStorage.removeItem('token');
-    setToken(null);
+  const signOut = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-  }
+    setSession(null);
+  };
 
-  function updateUser(userData: Partial<User>) {
-    if (user) {
-      setUser({ ...user, ...userData });
-    }
-  }
+  const value: AuthContextValue = {
+    user,
+    session,
+    loading,
+    signOut,
+  };
 
-  useMemo(() => {
-    if (token && !user) {
-      fetchMe(token).catch(() => {});
-    }
-  }, [token, user]);
-
-  const value = useMemo(() => ({ user, token, login, register, logout, updateUser }), [user, token]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
@@ -98,5 +76,3 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
-
-

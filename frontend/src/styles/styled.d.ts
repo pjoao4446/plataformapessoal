@@ -1,9 +1,9 @@
 // src/styles/styled.d.ts
 
 import 'styled-components';
-import theme from './theme';
+import { getStyledTheme } from './styled-theme';
 
-type Theme = typeof theme; // O correto é typeof da variável 'theme', com 't' minúsculo
+type Theme = ReturnType<typeof getStyledTheme>;
 
 declare module 'styled-components' {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type

@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { z } from 'zod';
-import { db, runInTransaction } from './db/index.js';
+import { db, runInTransaction, prepare, exec, executeQuery } from './db/index.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -153,6 +153,7 @@ const TopicSchema = z.object({
   description: z.string().optional().nullable(),
   content_type: z.enum(['text', 'video']).optional().default('text'),
   text_content: z.string().optional().nullable(),
+  content: z.string().optional().nullable(), // Para conteúdo HTML do editor
   video_path: z.string().optional().nullable(),
   position: z.number().int().optional(),
 });
@@ -182,16 +183,15 @@ app.post('/auth/register', async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const { name, email, password, role } = parsed.data;
   try {
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    const existing = await prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (existing) return res.status(409).json({ error: 'Email já cadastrado' });
     const password_hash = await bcrypt.hash(password, 10);
-    const info = db
-      .prepare('INSERT INTO users (name, email, password_hash, role) VALUES (?,?,?,?)')
-      .run(name, email, password_hash, role ?? 'aluno');
-    const user = db.prepare('SELECT id, name, email, role, created_at FROM users WHERE id = ?').get(info.lastInsertRowid);
+    const info = await prepare('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)').run(name, email, password_hash, role ?? 'aluno');
+    const user = await prepare('SELECT id, name, email, role, created_at FROM users WHERE id = ?').get(info.lastInsertRowid);
     const token = createToken({ id: user.id, role: user.role, email: user.email, name: user.name });
     res.status(201).json({ user, token });
   } catch (e) {
+    console.error('Erro no registro:', e);
     res.status(500).json({ error: 'Erro ao registrar' });
   }
 });
@@ -201,21 +201,31 @@ app.post('/auth/login', async (req, res) => {
   const parsed = Body.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const { email, password } = parsed.data;
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-  if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
-  const ok = await bcrypt.compare(password, user.password_hash);
-  if (!ok) return res.status(401).json({ error: 'Credenciais inválidas' });
-  const token = createToken({ id: user.id, role: user.role, email: user.email, name: user.name });
-  res.json({
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, created_at: user.created_at },
-    token,
-  });
+  try {
+    const user = await prepare('SELECT * FROM users WHERE email = ?').get(email);
+    if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
+    const ok = await bcrypt.compare(password, user.password_hash);
+    if (!ok) return res.status(401).json({ error: 'Credenciais inválidas' });
+    const token = createToken({ id: user.id, role: user.role, email: user.email, name: user.name });
+    res.json({
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, created_at: user.created_at },
+      token,
+    });
+  } catch (e) {
+    console.error('Erro no login:', e);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
 });
 
-app.get('/auth/me', authMiddleware, (req, res) => {
-  const user = db.prepare('SELECT id, name, email, role, created_at FROM users WHERE id = ?').get(req.user.id);
-  if (!user) return res.status(404).json({ error: 'Not found' });
-  res.json({ user });
+app.get('/auth/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await prepare('SELECT id, name, email, role, created_at FROM users WHERE id = ?').get(req.user.id);
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    res.json({ user });
+  } catch (e) {
+    console.error('Erro ao buscar usuário:', e);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
 });
 
 // Ranking endpoints
@@ -499,9 +509,9 @@ app.post('/modules', authMiddleware, requireRole(['professor', 'admin']), (req, 
   res.status(201).json(module);
 });
 
-app.delete('/modules/:id', authMiddleware, requireRole(['professor', 'admin']), (req, res) => {
+app.delete('/modules/:id', authMiddleware, requireRole(['professor', 'admin']), async (req, res) => {
   const id = Number(req.params.id);
-  const info = db.prepare('DELETE FROM modules WHERE id = ?').run(id);
+  const info = await prepare('DELETE FROM modules WHERE id = ?').run(id);
   if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
   res.status(204).end();
 });
@@ -510,11 +520,11 @@ app.delete('/modules/:id', authMiddleware, requireRole(['professor', 'admin']), 
 app.post('/topics', authMiddleware, requireRole(['professor', 'admin']), (req, res) => {
   const parsed = TopicSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-  const { module_id, title, description, content_type, text_content, video_path, position } = parsed.data;
+  const { module_id, title, description, content_type, text_content, content, video_path, position } = parsed.data;
   const pos = position ?? 0;
   const info = db
-    .prepare('INSERT INTO topics (module_id, title, description, content_type, text_content, video_path, position) VALUES (?,?,?,?,?,?,?)')
-    .run(module_id, title, description, content_type, text_content, video_path, pos);
+    .prepare('INSERT INTO topics (module_id, title, description, content_type, text_content, content, video_path, position) VALUES (?,?,?,?,?,?,?,?)')
+    .run(module_id, title, description, content_type, text_content, content, video_path, pos);
   const topic = db.prepare('SELECT * FROM topics WHERE id = ?').get(info.lastInsertRowid);
   res.status(201).json(topic);
 });
@@ -523,6 +533,13 @@ app.get('/topics/module/:moduleId', (req, res) => {
   const moduleId = Number(req.params.moduleId);
   const topics = db.prepare('SELECT * FROM topics WHERE module_id = ? ORDER BY position, id').all(moduleId);
   res.json(topics);
+});
+
+app.get('/topics/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const topic = db.prepare('SELECT * FROM topics WHERE id = ?').get(id);
+  if (!topic) return res.status(404).json({ error: 'Not found' });
+  res.json({ topic });
 });
 
 app.put('/topics/:id', authMiddleware, requireRole(['professor', 'admin']), (req, res) => {
@@ -549,6 +566,10 @@ app.put('/topics/:id', authMiddleware, requireRole(['professor', 'admin']), (req
     updateFields.push('text_content = ?');
     values.push(parsed.data.text_content);
   }
+  if (parsed.data.content !== undefined) {
+    updateFields.push('content = ?');
+    values.push(parsed.data.content);
+  }
   if (parsed.data.video_path !== undefined) {
     updateFields.push('video_path = ?');
     values.push(parsed.data.video_path);
@@ -568,9 +589,9 @@ app.put('/topics/:id', authMiddleware, requireRole(['professor', 'admin']), (req
   res.json(topic);
 });
 
-app.delete('/topics/:id', authMiddleware, requireRole(['professor', 'admin']), (req, res) => {
+app.delete('/topics/:id', authMiddleware, requireRole(['professor', 'admin']), async (req, res) => {
   const id = Number(req.params.id);
-  const info = db.prepare('DELETE FROM topics WHERE id = ?').run(id);
+  const info = await prepare('DELETE FROM topics WHERE id = ?').run(id);
   if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
   res.status(204).end();
 });

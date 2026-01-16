@@ -7,7 +7,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "migrate": "node scripts/migrate.js"
+    "migrate": "node scripts/migrate.js",
+    "setup-postgres": "node scripts/setup-postgres.js",
+    "create-postgres-schema": "node scripts/create-postgres-schema.js",
+    "migrate-to-postgres": "node scripts/migrate-to-postgres.js",
+    "test-postgres": "node scripts/test-postgres.js"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +25,8 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
+    "pg": "^8.16.3",
+    "recharts": "^3.3.0",
     "zod": "^4.1.11"
   },
   "devDependencies": {

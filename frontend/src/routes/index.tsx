@@ -1,39 +1,105 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { MainLayout } from '../components/layout';
+import { ProtectedRoute } from '../components/ProtectedRoute';
+import { useAuth } from '../context/AuthContext';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
-import { LoginPage } from '../containers/LoginPage';
-import { RegisterPage } from '../containers/RegisterPage';
+// Auth Page
+import { AuthPage } from '../pages/AuthPage';
+
+// Main Dashboard
+import { DashboardPage } from '../containers/DashboardPage';
+
+// Goals Pages
+import { GoalsFinancePage } from '../containers/GoalsFinancePage';
+import { GoalsCareerPage } from '../containers/GoalsCareerPage';
+import { GoalsBusinessPage } from '../containers/GoalsBusinessPage';
+import { GoalsEducationPage } from '../containers/GoalsEducationPage';
+import { GoalsReadingPage } from '../containers/GoalsReadingPage';
+import { GoalsHealthPage } from '../containers/GoalsHealthPage';
+
+// Operational Pages
+import { FinancePage } from '../containers/FinancePage';
+import { TasksPage } from '../containers/TasksPage';
+
+// Legacy Pages (mantidas para compatibilidade)
 import { TelaInicio } from '../containers/TelaInicio';
-import { SegmentosPage } from '../containers/SegmentosPage';
-import { CourseControlPage } from '../containers/CourseControlPage';
-import { CourseIntroPage } from '../containers/CourseIntroPage';
-import { CourseContentPage } from '../containers/CourseContentPage';
-import { CourseSimuladosPage } from '../containers/CourseSimuladosPage';
-import { CoursePage } from '../containers/CoursePage';
-import { ProfilePage } from '../containers/ProfilePage';
-import { SettingsPage } from '../containers/SettingsPage';
-import { RankingPage } from '../containers/RankingPage';
-import { ForgotPasswordPage } from '../containers/ForgotPasswordPage';
-import { ResetPasswordPage } from '../containers/ResetPasswordPage';
+import { GestaoFinanceiraPage } from '../containers/GestaoFinanceiraPage';
+import { GestaoAtividadesPage } from '../containers/GestaoAtividadesPage';
+
+// NotFound
+import { NotFoundPage } from '../containers/NotFoundPage';
+
+// Componente para redirecionar usuários logados que tentam acessar /login
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}
 
 export function AppRoutes() {
   const location = useLocation();
 
   return (
-      <Routes location={location} key={location.pathname}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/inicio" element={<TelaInicio />} />
-        <Route path="/segmento/:segmentoId" element={<SegmentosPage />} />
-        <Route path="/cursos" element={<CourseControlPage />} />
-        <Route path="/curso/:id" element={<CoursePage />} />
-        <Route path="/curso/:id/intro" element={<CourseIntroPage />} />
-        <Route path="/curso/:id/conteudo" element={<CourseContentPage />} />
-        <Route path="/curso/:id/simulados" element={<CourseSimuladosPage />} />
-        <Route path="/perfil" element={<ProfilePage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/ranking" element={<RankingPage />} />
-      </Routes>
+    <Routes location={location} key={location.pathname}>
+      {/* Authentication Route - SEM Layout, redireciona se já logado */}
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <AuthPage />
+          </PublicRoute>
+        }
+      />
+      
+      {/* Redirecionar /register para /login */}
+      <Route path="/register" element={<Navigate to="/login" replace />} />
+      
+      {/* Protected Routes - COM MainLayout */}
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <Routes>
+                {/* Main Dashboard */}
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                
+                {/* Goals Routes */}
+                <Route path="/goals/finance" element={<GoalsFinancePage />} />
+                <Route path="/goals/career" element={<GoalsCareerPage />} />
+                <Route path="/goals/business" element={<GoalsBusinessPage />} />
+                <Route path="/goals/education" element={<GoalsEducationPage />} />
+                <Route path="/goals/reading" element={<GoalsReadingPage />} />
+                <Route path="/goals/health" element={<GoalsHealthPage />} />
+                
+                {/* Operational Routes */}
+                <Route path="/finance" element={<FinancePage />} />
+                <Route path="/tasks" element={<TasksPage />} />
+                
+                {/* Legacy Routes - Mantidas para compatibilidade */}
+                <Route path="/inicio" element={<TelaInicio />} />
+                <Route path="/gestao-pessoal/financeira" element={<GestaoFinanceiraPage />} />
+                <Route path="/gestao-pessoal/atividades" element={<GestaoAtividadesPage />} />
+                <Route path="/financeiro" element={<GestaoFinanceiraPage />} />
+                <Route path="/atividades" element={<GestaoAtividadesPage />} />
+                
+                {/* 404 - Catch all */}
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   );
 }
