@@ -21,6 +21,7 @@ export interface CreditCard {
   closingDay: number;
   dueDay: number;
   bank?: string;
+  color?: string;
 }
 
 export interface Category {
@@ -171,8 +172,9 @@ export const MOCK_ACCOUNTS: Account[] = [
 ];
 
 export const MOCK_CARDS: CreditCard[] = [
-  { id: '1', name: 'Cartão Nubank', limit: 5000.00, used: 1200.00, closingDay: 5, dueDay: 10, bank: 'Nubank' },
-  { id: '2', name: 'Cartão BB', limit: 3000.00, used: 800.00, closingDay: 10, dueDay: 15, bank: 'Banco do Brasil' },
+  { id: '1', name: 'Cartão Nubank', limit: 5000.00, used: 1200.00, closingDay: 5, dueDay: 10, bank: 'Nubank', color: '#820AD1' },
+  { id: '2', name: 'Cartão BB', limit: 3000.00, used: 800.00, closingDay: 10, dueDay: 15, bank: 'Banco do Brasil', color: '#820AD1' },
+  { id: '3', name: 'Cartão Inter', limit: 4000.00, used: 1500.00, closingDay: 15, dueDay: 20, bank: 'Inter', color: '#FF7A00' },
 ];
 
 export const MOCK_CATEGORIES: Category[] = [

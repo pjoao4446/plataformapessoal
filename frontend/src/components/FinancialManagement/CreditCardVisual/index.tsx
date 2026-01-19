@@ -62,11 +62,10 @@ export const CreditCardVisual: FC<CreditCardVisualProps> = ({
     <div
       style={{
         position: 'relative',
-        aspectRatio: '1.58 / 1',
-        borderRadius: '1rem',
+        borderRadius: '0.75rem',
         background: gradient,
         color: 'white',
-        padding: '1.5rem',
+        padding: '1rem',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -76,6 +75,8 @@ export const CreditCardVisual: FC<CreditCardVisualProps> = ({
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         overflow: 'hidden',
         cursor: 'pointer',
+        minHeight: '220px',
+        aspectRatio: '1.58 / 1',
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-8px) scale(1.03)';
@@ -104,12 +105,12 @@ export const CreditCardVisual: FC<CreditCardVisualProps> = ({
       />
 
       {/* Header do Cartão */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', position: 'relative', zIndex: 1 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', position: 'relative', zIndex: 1 }}>
         {/* Chip */}
         <div
           style={{
-            width: '40px',
-            height: '32px',
+            width: '32px',
+            height: '26px',
             backgroundColor: '#FFD700',
             borderRadius: '0.375rem',
             position: 'relative',
@@ -122,8 +123,8 @@ export const CreditCardVisual: FC<CreditCardVisualProps> = ({
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '20px',
-              height: '16px',
+              width: '16px',
+              height: '13px',
               backgroundColor: '#FFA500',
               borderRadius: '0.25rem',
             }}
@@ -133,42 +134,42 @@ export const CreditCardVisual: FC<CreditCardVisualProps> = ({
         {/* Logo da Bandeira */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           {brand === 'visa' ? (
-            <div style={{ fontSize: '1rem', fontWeight: 'bold', letterSpacing: '-0.05em', textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }}>
+            <div style={{ fontSize: '0.875rem', fontWeight: 'bold', letterSpacing: '-0.05em', textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }}>
               VISA
             </div>
           ) : (
             <div style={{ display: 'flex', gap: '0.15rem', alignItems: 'center' }}>
-              <div style={{ width: '28px', height: '20px', borderRadius: '0.25rem', backgroundColor: '#EB001B', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }} />
-              <div style={{ width: '28px', height: '20px', borderRadius: '0.25rem', backgroundColor: '#F79E1B', marginLeft: '-14px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }} />
+              <div style={{ width: '24px', height: '16px', borderRadius: '0.25rem', backgroundColor: '#EB001B', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }} />
+              <div style={{ width: '24px', height: '16px', borderRadius: '0.25rem', backgroundColor: '#F79E1B', marginLeft: '-12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }} />
             </div>
           )}
         </div>
       </div>
 
       {/* Número do Cartão */}
-      <div style={{ marginTop: '1rem', marginBottom: '0.5rem', position: 'relative', zIndex: 1 }}>
-        <p style={{ fontSize: '1.125rem', letterSpacing: '0.15em', fontWeight: '600', margin: 0, textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }}>
+      <div style={{ marginTop: '0.5rem', marginBottom: '0.375rem', position: 'relative', zIndex: 1 }}>
+        <p style={{ fontSize: '0.875rem', letterSpacing: '0.15em', fontWeight: '600', margin: 0, textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }}>
           {getMaskedCardNumber(card.id)}
         </p>
       </div>
 
       {/* Nome do Titular */}
-      <div style={{ marginTop: '0.75rem', position: 'relative', zIndex: 1 }}>
-        <p style={{ fontSize: '0.625rem', opacity: 0.8, margin: '0 0 0.25rem 0', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: '500' }}>
+      <div style={{ marginTop: '0.375rem', position: 'relative', zIndex: 1 }}>
+        <p style={{ fontSize: '0.5625rem', opacity: 0.8, margin: '0 0 0.125rem 0', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: '500' }}>
           Titular
         </p>
-        <p style={{ fontSize: '0.875rem', fontWeight: '600', margin: 0, textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}>
+        <p style={{ fontSize: '0.75rem', fontWeight: '600', margin: 0, textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}>
           {userName}
         </p>
       </div>
 
       {/* Barra de Limite dentro do cartão */}
-      <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.3)', position: 'relative', zIndex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-          <span style={{ fontSize: '0.625rem', opacity: 0.9, fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.3)', position: 'relative', zIndex: 1, flexShrink: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
+          <span style={{ fontSize: '0.5625rem', opacity: 0.9, fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Fatura Atual
           </span>
-          <span style={{ fontSize: '1.125rem', fontWeight: 'bold', lineHeight: 1, textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}>
+          <span style={{ fontSize: '0.875rem', fontWeight: 'bold', lineHeight: 1, textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}>
             {formatCurrency(card.used)}
           </span>
         </div>
@@ -177,11 +178,11 @@ export const CreditCardVisual: FC<CreditCardVisualProps> = ({
         <div
           style={{
             width: '100%',
-            height: '6px',
+            height: '5px',
             backgroundColor: 'rgba(255, 255, 255, 0.2)',
             borderRadius: '9999px',
             overflow: 'hidden',
-            marginBottom: '0.75rem',
+            marginBottom: '0.5rem',
             position: 'relative',
           }}
         >
@@ -198,13 +199,13 @@ export const CreditCardVisual: FC<CreditCardVisualProps> = ({
         </div>
 
         {/* Disponível e Limite */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.625rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.5625rem' }}>
           <div>
-            <span style={{ opacity: 0.85, fontWeight: '500', display: 'block', marginBottom: '0.25rem' }}>
+            <span style={{ opacity: 0.85, fontWeight: '500', display: 'block', marginBottom: '0.125rem' }}>
               Disponível
             </span>
             <span style={{ 
-              fontSize: '1rem', 
+              fontSize: '0.75rem', 
               fontWeight: 'bold', 
               color: 'white', 
               textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
@@ -214,10 +215,10 @@ export const CreditCardVisual: FC<CreditCardVisualProps> = ({
             </span>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ opacity: 0.85, fontWeight: '500', display: 'block', marginBottom: '0.25rem' }}>
+            <span style={{ opacity: 0.85, fontWeight: '500', display: 'block', marginBottom: '0.125rem' }}>
               Limite
             </span>
-            <span style={{ opacity: 0.7, fontWeight: '500' }}>
+            <span style={{ opacity: 0.7, fontWeight: '500', fontSize: '0.75rem' }}>
               {formatCurrency(card.limit)}
             </span>
           </div>

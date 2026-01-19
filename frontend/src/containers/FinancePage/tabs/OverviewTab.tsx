@@ -15,7 +15,8 @@ import {
   Legend
 } from 'recharts';
 import { TrendingUp, TrendingDown, Wallet, ArrowUp, ArrowDown, Calendar, Eye, EyeOff } from 'lucide-react';
-import { MOCK_TRANSACTIONS, MOCK_CATEGORIES } from '../../../mocks/database';
+import { MOCK_TRANSACTIONS, MOCK_CATEGORIES, MOCK_CARDS } from '../../../mocks/database';
+import { CreditCardVisual } from '../../../components/FinancialManagement/CreditCardVisual';
 
 /**
  * OverviewTab - Aba de Visão Geral
@@ -604,6 +605,36 @@ export const OverviewTab: FC = () => {
             </div>
           </div>
         </Card>
+      </div>
+
+      {/* Seção de Cartões de Crédito */}
+      <div>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: themeColors.text, marginBottom: '1.5rem', margin: '0 0 1.5rem 0' }}>
+          Meus Cartões
+        </h2>
+        
+        {/* Grid de Cartões: 3 colunas */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '1rem',
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
+          {MOCK_CARDS.map((card) => (
+            <div
+              key={card.id}
+              style={{
+                position: 'relative',
+              }}
+            >
+              {/* Componente de Cartão Visual */}
+              <CreditCardVisual card={card} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

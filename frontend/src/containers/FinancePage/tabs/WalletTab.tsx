@@ -489,12 +489,14 @@ export const WalletTab: FC<WalletTabProps> = ({ cards, setCards }) => {
           </Button>
         </div>
 
-        {/* Grid Responsivo de Cartões: 1 col (mobile) -> 2 cols (tablet) -> 3 cols (desktop) */}
+        {/* Grid Responsivo de Cartões: 3 colunas fixas */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '1.5rem',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '1rem',
+            width: '100%',
+            boxSizing: 'border-box',
           }}
         >
           {cards.map((card) => {

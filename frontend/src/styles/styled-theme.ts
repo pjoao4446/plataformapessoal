@@ -40,3 +40,4 @@ export const getStyledTheme = (mode: ThemeMode = 'dark') => {
 
 export default getStyledTheme('dark');
 
+

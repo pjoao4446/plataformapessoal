@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePageTitle } from '../../hooks/usePageTitle';
+import { usePageTitleContext } from '../../context/PageTitleContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { getTheme } from '../../styles/theme';
@@ -14,7 +14,7 @@ import { Bell, User, LogOut } from 'lucide-react';
 export function TopBar() {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
-  const { title, subtitle } = usePageTitle();
+  const { title } = usePageTitleContext();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
@@ -48,7 +48,7 @@ export function TopBar() {
           : '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
       }}
     >
-      {/* Título e Subtítulo */}
+      {/* Título */}
       <div>
         <h1
           style={{
@@ -56,22 +56,11 @@ export function TopBar() {
             fontWeight: 'bold',
             color: themeColors.text,
             margin: 0,
-            marginBottom: '0.25rem',
             lineHeight: 1.2,
           }}
         >
           {title}
         </h1>
-        <p
-          style={{
-            fontSize: '0.875rem',
-            color: themeColors.textSecondary,
-            margin: 0,
-            lineHeight: 1.2,
-          }}
-        >
-          {subtitle}
-        </p>
       </div>
 
       {/* Área Direita - Placeholder para User Profile e Notificações */}

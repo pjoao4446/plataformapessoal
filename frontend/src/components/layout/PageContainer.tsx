@@ -30,7 +30,6 @@ export function PageContainer({ children, className = '' }: PageContainerProps) 
         flexDirection: 'column',
         gap: '1.5rem', // gap-6 = 1.5rem (24px)
         color: themeColors.text,
-        minHeight: '100%',
         boxSizing: 'border-box',
       }}
       className={className}

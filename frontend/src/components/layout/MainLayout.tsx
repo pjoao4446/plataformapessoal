@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { useTheme } from '../../context/ThemeContext';
+import { PageTitleProvider } from '../../context/PageTitleContext';
 import { getTheme } from '../../styles/theme';
 
 interface MainLayoutProps {
@@ -18,56 +19,56 @@ export function MainLayout({ children }: MainLayoutProps) {
   const themeColors = getTheme(theme).colors;
 
   return (
-    <div 
-      style={{
-        display: 'flex',
-        height: '100vh',
-        width: '100vw',
-        margin: 0,
-        padding: 0,
-        backgroundColor: themeColors.background,
-        overflow: 'hidden',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-      }}
-    >
-      {/* Sidebar Fixa */}
-      <Sidebar />
-      
-      {/* Área de Conteúdo Principal - Compensando a sidebar fixa */}
-      <main 
+    <PageTitleProvider>
+      <div 
         style={{
-          flex: 1,
-          marginLeft: '18rem',
-          height: '100vh',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          backgroundColor: themeColors.background,
-          WebkitOverflowScrolling: 'touch',
-          width: 'calc(100vw - 18rem)',
-          maxWidth: 'calc(100vw - 18rem)',
           display: 'flex',
-          flexDirection: 'column',
+          height: '100vh',
+          width: '100vw',
+          margin: 0,
+          padding: 0,
+          backgroundColor: themeColors.background,
+          overflow: 'hidden',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
         }}
       >
-        {/* TopBar Fixa */}
-        <TopBar />
+        {/* Sidebar Fixa */}
+        <Sidebar />
         
-        {/* Conteúdo Principal - Padding-top para não ficar escondido atrás da TopBar */}
-        <div
+        {/* Área de Conteúdo Principal - Compensando a sidebar fixa */}
+        <main 
           style={{
             flex: 1,
-            paddingTop: '1rem', // Espaçamento adicional para garantir que o conteúdo não fique escondido
-            minHeight: 'calc(100vh - 4rem)',
+            marginLeft: '18rem',
+            height: '100vh',
             overflowY: 'auto',
+            overflowX: 'hidden',
+            backgroundColor: themeColors.background,
+            WebkitOverflowScrolling: 'touch',
+            width: 'calc(100vw - 18rem)',
+            maxWidth: 'calc(100vw - 18rem)',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
-          {children}
-        </div>
-      </main>
-    </div>
+          {/* TopBar Fixa */}
+          <TopBar />
+          
+          {/* Conteúdo Principal - Padding-top para não ficar escondido atrás da TopBar */}
+          <div
+            style={{
+              flex: 1,
+              paddingTop: '1rem', // Espaçamento adicional para garantir que o conteúdo não fique escondido
+            }}
+          >
+            {children}
+          </div>
+        </main>
+      </div>
+    </PageTitleProvider>
   );
 }

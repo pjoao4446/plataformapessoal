@@ -150,9 +150,6 @@ export const GestaoFinanceiraPage: FC = () => {
             <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: themeColors.text, margin: 0 }}>
               Gestão Financeira
             </h1>
-            <p style={{ fontSize: '0.875rem', color: themeColors.textSecondary, margin: 0 }}>
-              Fluxo de Caixa e Controle Operacional
-            </p>
           </div>
         </div>
 

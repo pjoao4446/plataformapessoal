@@ -592,3 +592,4 @@ npm install tailwindcss@^3.4.19  # Tailwind CSS (versão específica)
 
 
 
+

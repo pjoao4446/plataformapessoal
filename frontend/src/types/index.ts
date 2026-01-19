@@ -60,3 +60,4 @@ export interface Asset {
   owner_type: OwnerType;
 }
 
+
