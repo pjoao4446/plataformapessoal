@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -14,7 +14,8 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getTheme } from '../../styles/theme';
-import { MOCK_WORKOUTS } from '../../mocks/database';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * GoalsHealthPage - Página de Treinos & Saúde
@@ -24,9 +25,39 @@ import { MOCK_WORKOUTS } from '../../mocks/database';
 export const GoalsHealthPage: FC = () => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
+  const { user } = useAuth();
+  const [workouts, setWorkouts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const gymWorkout = useMemo(() => MOCK_WORKOUTS.find(w => w.type === 'gym'), []);
-  const runWorkout = useMemo(() => MOCK_WORKOUTS.find(w => w.type === 'run'), []);
+  // Buscar treinos do Supabase
+  useEffect(() => {
+    if (user) {
+      fetchWorkouts();
+    }
+  }, [user]);
+
+  const fetchWorkouts = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Por enquanto, deixar vazio pois pode não haver tabela de treinos
+      // Se houver, buscar assim:
+      // const { data } = await supabase
+      //   .from('workouts')
+      //   .select('*')
+      //   .eq('user_id', user.id);
+      // setWorkouts(data || []);
+      setWorkouts([]);
+    } catch (err) {
+      console.error('Erro ao carregar treinos:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const gymWorkout = useMemo(() => workouts.find(w => w.type === 'gym'), [workouts]);
+  const runWorkout = useMemo(() => workouts.find(w => w.type === 'run'), [workouts]);
 
   // Calcular progresso semanal para Gym (dias)
   const gymWeeklyProgress = gymWorkout

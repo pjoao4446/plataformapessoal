@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Accordion } from '../../components/ui/Accordion';
@@ -19,7 +19,9 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getTheme } from '../../styles/theme';
-import { MOCK_FINANCIAL_GOALS, type FinancialGoal, type QuarterStatus } from '../../mocks/database';
+import type { FinancialGoal, QuarterStatus } from '../../mocks/database';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * GoalsFinancePage - Página de Metas Financeiras
@@ -29,16 +31,46 @@ import { MOCK_FINANCIAL_GOALS, type FinancialGoal, type QuarterStatus } from '..
 export const GoalsFinancePage: FC = () => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
+  const { user } = useAuth();
   const [expandedGoal, setExpandedGoal] = useState<string | null>(null);
+  const [financialGoals, setFinancialGoals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Buscar metas financeiras do Supabase
+  useEffect(() => {
+    if (user) {
+      fetchGoals();
+    }
+  }, [user]);
+
+  const fetchGoals = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Por enquanto, deixar vazio pois pode não haver tabela de metas financeiras
+      // Se houver, buscar assim:
+      // const { data } = await supabase
+      //   .from('financial_goals')
+      //   .select('*')
+      //   .eq('user_id', user.id);
+      // setFinancialGoals(data || []);
+      setFinancialGoals([]);
+    } catch (err) {
+      console.error('Erro ao carregar metas financeiras:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calcular KPIs do Ano
-  const totalTarget = MOCK_FINANCIAL_GOALS.reduce((sum, goal) => sum + goal.totalTarget, 0);
-  const totalCurrent = MOCK_FINANCIAL_GOALS.reduce((sum, goal) => {
+  const totalTarget = financialGoals.reduce((sum, goal) => sum + (goal.totalTarget || 0), 0);
+  const totalCurrent = financialGoals.reduce((sum, goal) => {
     if (goal.type === 'investment') {
-      return sum + goal.currentAmount;
+      return sum + (goal.currentAmount || 0);
     } else {
       // Para dívidas, o progresso é o quanto já foi pago
-      return sum + (goal.totalTarget - goal.currentAmount);
+      return sum + ((goal.totalTarget || 0) - (goal.currentAmount || 0));
     }
   }, 0);
   const progressPercentage = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
@@ -50,7 +82,9 @@ export const GoalsFinancePage: FC = () => {
     }).format(value);
   };
 
-  const getQuarterStatusIcon = (status: QuarterStatus) => {
+  type QuarterStatusType = 'completed' | 'failed' | 'pending';
+
+  const getQuarterStatusIcon = (status: QuarterStatusType) => {
     switch (status) {
       case 'completed':
         return <CheckCircle2 style={{ width: '1.5rem', height: '1.5rem', color: themeColors.status.success }} />;
@@ -61,7 +95,7 @@ export const GoalsFinancePage: FC = () => {
     }
   };
 
-  const getQuarterStatusColor = (status: QuarterStatus) => {
+  const getQuarterStatusColor = (status: QuarterStatusType) => {
     switch (status) {
       case 'completed':
         return themeColors.status.success;
@@ -72,9 +106,29 @@ export const GoalsFinancePage: FC = () => {
     }
   };
 
+  // Função auxiliar para calcular status de um quarter baseado no progresso
+  const calculateQuarterStatus = (quarter: QuarterStatus): 'completed' | 'failed' | 'pending' => {
+    if (!quarter) return 'pending';
+    const progress = quarter.target > 0 ? (quarter.current / quarter.target) * 100 : 0;
+    // Verificar se o trimestre já passou (baseado na data atual)
+    const currentDate = new Date();
+    const currentQuarter = Math.floor(currentDate.getMonth() / 3) + 1;
+    
+    if (quarter.quarter < currentQuarter) {
+      // Trimestre já passou
+      return progress >= 100 ? 'completed' : 'failed';
+    }
+    return 'pending';
+  };
+
   // Verificar se quarter passou (completed ou failed)
-  const isQuarterPassed = (status: QuarterStatus): boolean => {
+  const isQuarterPassed = (status: 'completed' | 'failed' | 'pending'): boolean => {
     return status === 'completed' || status === 'failed';
+  };
+
+  // Função auxiliar para obter quarter por número
+  const getQuarterByNumber = (quarters: QuarterStatus[], quarterNum: number): QuarterStatus | undefined => {
+    return quarters.find(q => q.quarter === quarterNum);
   };
 
   return (
@@ -204,7 +258,24 @@ export const GoalsFinancePage: FC = () => {
 
       {/* Lista de Metas */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {MOCK_FINANCIAL_GOALS.map((goal: FinancialGoal) => {
+        {loading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: themeColors.textSecondary }}>
+            Carregando metas financeiras...
+          </div>
+        ) : financialGoals.length === 0 ? (
+          <Card padding="lg">
+            <div style={{ padding: '3rem', textAlign: 'center', color: themeColors.textSecondary }}>
+              <p style={{ fontSize: '1rem', margin: '0 0 1rem 0' }}>
+                Nenhuma meta financeira cadastrada.
+              </p>
+              <Button variant="primary">
+                <Plus style={{ width: '1rem', height: '1rem', marginRight: '0.5rem' }} />
+                Criar Primeira Meta
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          financialGoals.map((goal: any) => {
           const progress = goal.totalTarget > 0 
             ? (goal.currentAmount / goal.totalTarget) * 100 
             : 0;
@@ -243,7 +314,7 @@ export const GoalsFinancePage: FC = () => {
                       {/* Título e Valores */}
                       <div style={{ flex: 1 }}>
                         <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: themeColors.text, margin: 0, marginBottom: '0.25rem' }}>
-                          {goal.title}
+                          {goal.name || goal.title}
                         </h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem' }}>
                           <span style={{ color: themeColors.textSecondary }}>
@@ -320,11 +391,14 @@ export const GoalsFinancePage: FC = () => {
                     />
                     
                     {/* Linha Conectora Colorida (para quarters passados) */}
-                    {(['q1', 'q2', 'q3', 'q4'] as const).map((quarterKey, idx) => {
-                      const quarter = goal.quarters[quarterKey];
-                      const isPassed = isQuarterPassed(quarter.status);
-                      const prevQuarter = idx > 0 ? goal.quarters[(['q1', 'q2', 'q3', 'q4'] as const)[idx - 1]] : null;
-                      const prevIsPassed = prevQuarter ? isQuarterPassed(prevQuarter.status) : false;
+                    {([1, 2, 3, 4] as const).map((quarterNum, idx) => {
+                      const quarter = getQuarterByNumber(goal.quarters, quarterNum);
+                      if (!quarter) return null;
+                      
+                      const quarterStatus = calculateQuarterStatus(quarter);
+                      const isPassed = isQuarterPassed(quarterStatus);
+                      const prevQuarter = idx > 0 ? getQuarterByNumber(goal.quarters, quarterNum - 1) : null;
+                      const prevIsPassed = prevQuarter ? isQuarterPassed(calculateQuarterStatus(prevQuarter)) : false;
                       
                       if (!isPassed && !prevIsPassed) return null;
                       
@@ -333,7 +407,7 @@ export const GoalsFinancePage: FC = () => {
                       
                       return (
                         <div
-                          key={`line-${quarterKey}`}
+                          key={`line-q${quarterNum}`}
                           style={{
                             position: 'absolute',
                             top: '3rem',
@@ -350,17 +424,28 @@ export const GoalsFinancePage: FC = () => {
 
                     {/* Quarters */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', position: 'relative', zIndex: 2 }}>
-                      {(['q1', 'q2', 'q3', 'q4'] as const).map((quarterKey) => {
-                        const quarter = goal.quarters[quarterKey];
+                      {([1, 2, 3, 4] as const).map((quarterNum) => {
+                        const quarter = getQuarterByNumber(goal.quarters, quarterNum);
+                        if (!quarter) {
+                          // Renderizar placeholder vazio se quarter não existir
+                          return (
+                            <div key={`q${quarterNum}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', opacity: 0.3 }}>
+                              <div style={{ width: '4rem', height: '4rem', borderRadius: '50%', backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', border: `4px solid ${themeColors.border}` }} />
+                              <div style={{ fontSize: '0.875rem', color: themeColors.textSecondary }}>Q{quarterNum}</div>
+                            </div>
+                          );
+                        }
+                        
                         const quarterProgress = quarter.target > 0 
-                          ? (quarter.actual / quarter.target) * 100 
+                          ? (quarter.current / quarter.target) * 100 
                           : 0;
-                        const statusColor = getQuarterStatusColor(quarter.status);
-                        const isPassed = isQuarterPassed(quarter.status);
+                        const quarterStatus = calculateQuarterStatus(quarter);
+                        const statusColor = getQuarterStatusColor(quarterStatus);
+                        const isPassed = isQuarterPassed(quarterStatus);
 
                         return (
                           <div
-                            key={quarterKey}
+                            key={`q${quarterNum}`}
                             style={{
                               display: 'flex',
                               flexDirection: 'column',
@@ -391,7 +476,7 @@ export const GoalsFinancePage: FC = () => {
                                 transition: 'all 0.3s ease',
                               }}
                             >
-                              {getQuarterStatusIcon(quarter.status)}
+                              {getQuarterStatusIcon(quarterStatus)}
                             </div>
 
                             {/* Card do Quarter - Com Fundo Sutil */}
@@ -409,12 +494,12 @@ export const GoalsFinancePage: FC = () => {
                               }}
                             >
                               <p style={{ fontSize: '0.75rem', fontWeight: '600', color: themeColors.textSecondary, margin: 0, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                {quarterKey.toUpperCase()}
+                                Q{quarterNum}
                               </p>
                               
                               {/* Valor Atingido - Destaque */}
                               <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: themeColors.text, margin: 0, marginBottom: '0.25rem' }}>
-                                {formatCurrency(quarter.actual)}
+                                {formatCurrency(quarter.current)}
                               </p>
                               <p style={{ fontSize: '0.75rem', color: themeColors.textMuted, margin: 0, marginBottom: '1rem' }}>
                                 de {formatCurrency(quarter.target)}
@@ -447,7 +532,7 @@ export const GoalsFinancePage: FC = () => {
                               <Button
                                 variant={isPassed ? 'secondary' : 'primary'}
                                 size="sm"
-                                onClick={() => console.log(`Registrar pagamento/aporte para ${quarterKey}`)}
+                                onClick={() => console.log(`Registrar pagamento/aporte para Q${quarterNum}`)}
                                 style={{
                                   width: '100%',
                                   display: 'flex',
@@ -469,7 +554,8 @@ export const GoalsFinancePage: FC = () => {
               </Accordion>
             </div>
           );
-        })}
+          })
+        )}
       </div>
     </PageContainer>
   );

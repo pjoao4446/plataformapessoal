@@ -1,4 +1,4 @@
-import { FC, useState, useMemo } from 'react';
+import { FC, useState, useMemo, useEffect } from 'react';
 import { Card } from '../../components/ui/Card';
 import { ProgressRing } from '../../components/dashboard/ProgressRing';
 import { HabitCheckbox } from '../../components/dashboard/HabitCheckbox';
@@ -15,13 +15,8 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getTheme } from '../../styles/theme';
-import {
-  MOCK_FINANCIAL_GOALS,
-  MOCK_TRANSACTIONS,
-  calculateBalance,
-  getIncomeTotal,
-  getExpenseTotal,
-} from '../../mocks/database';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 // Dados Mockados (mantidos para outras áreas)
 const MOCK_DATA = {
@@ -55,35 +50,91 @@ export const DashboardPage: FC = () => {
   const [habits, setHabits] = useState(MOCK_DATA.habits);
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
+  const { user } = useAuth();
+  
+  // Estados para dados do Supabase
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [financialGoals, setFinancialGoals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Buscar dados do Supabase
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  const fetchData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Buscar transações
+      const { data: transactionsData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      // Buscar contas para calcular saldo total
+      const { data: accountsData } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('user_id', user.id);
+
+      // Buscar metas financeiras (se existir tabela)
+      // Por enquanto, deixar vazio se não houver tabela
+      setTransactions(transactionsData || []);
+      setAccounts(accountsData || []);
+      setFinancialGoals([]);
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleHabit = (id: number) => {
     setHabits(habits.map(h => h.id === id ? { ...h, checked: !h.checked } : h));
   };
 
   // Cálculos Financeiros Reais
-  const totalBalance = useMemo(() => calculateBalance(MOCK_TRANSACTIONS), []);
-  const incomeTotal = useMemo(() => getIncomeTotal(MOCK_TRANSACTIONS), []);
-  const expenseTotal = useMemo(() => getExpenseTotal(MOCK_TRANSACTIONS), []);
+  const totalBalance = useMemo(() => {
+    return accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+  }, [accounts]);
+  
+  const incomeTotal = useMemo(() => {
+    return transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+  }, [transactions]);
+  
+  const expenseTotal = useMemo(() => {
+    return transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+  }, [transactions]);
 
   // Calcular progresso geral das metas financeiras
   const goalsProgress = useMemo(() => {
-    if (MOCK_FINANCIAL_GOALS.length === 0) return 0;
+    if (financialGoals.length === 0) return 0;
     
-    const totalProgress = MOCK_FINANCIAL_GOALS.reduce((sum, goal) => {
+    const totalProgress = financialGoals.reduce((sum: number, goal: any) => {
       const progress = goal.totalTarget > 0 
         ? (goal.currentAmount / goal.totalTarget) * 100 
         : 0;
       return sum + progress;
     }, 0);
     
-    return totalProgress / MOCK_FINANCIAL_GOALS.length;
-  }, []);
+    return totalProgress / financialGoals.length;
+  }, [financialGoals]);
 
   // Encontrar a meta mais próxima de ser concluída
   const nearestGoal = useMemo(() => {
-    if (MOCK_FINANCIAL_GOALS.length === 0) return null;
+    if (financialGoals.length === 0) return null;
     
-    return MOCK_FINANCIAL_GOALS.reduce((nearest, goal) => {
+    return financialGoals.reduce((nearest: any, goal: any) => {
       const progress = goal.totalTarget > 0 
         ? (goal.currentAmount / goal.totalTarget) * 100 
         : 0;
@@ -98,7 +149,7 @@ export const DashboardPage: FC = () => {
       }
       
       return nearest;
-    }, MOCK_FINANCIAL_GOALS[0]);
+    }, financialGoals[0]);
   }, []);
 
   // Dados para gráfico (últimos 6 meses simulados baseados no saldo atual)
@@ -418,7 +469,7 @@ export const DashboardPage: FC = () => {
 
             {/* Lista de Metas */}
             <div>
-              {MOCK_FINANCIAL_GOALS.slice(0, 2).map((goal) => {
+              {financialGoals.slice(0, 2).map((goal: any) => {
                 const progress = goal.totalTarget > 0 
                   ? (goal.currentAmount / goal.totalTarget) * 100 
                   : 0;

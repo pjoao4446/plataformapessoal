@@ -2,8 +2,10 @@ import { FC, useState, useMemo } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { getTheme } from '../../../styles/theme';
 import { Card } from '../../../components/ui/Card';
-import { Building2, User, Landmark, TrendingUp, TrendingDown, MoreHorizontal, Edit, DollarSign, AlertTriangle } from 'lucide-react';
+import { Button } from '../../../components/ui/Button';
+import { Building2, User, Landmark, TrendingUp, TrendingDown, MoreHorizontal, Edit, DollarSign, AlertTriangle, Plus } from 'lucide-react';
 import type { OwnerType } from '../../../types';
+import { CreatePatrimonyItemModal } from '../../../components/modals/CreatePatrimonyItemModal';
 
 /**
  * PatrimonyTab - Aba de Patrimônio
@@ -14,6 +16,7 @@ export const PatrimonyTab: FC = () => {
   const themeColors = getTheme(theme).colors;
   const [ownerFilter, setOwnerFilter] = useState<OwnerType>('personal');
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [isPatrimonyModalOpen, setIsPatrimonyModalOpen] = useState(false);
 
   // Dados mockados de passivos (dívidas)
   const mockLiabilities = useMemo(() => [
@@ -234,43 +237,53 @@ export const PatrimonyTab: FC = () => {
         <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: themeColors.text, margin: 0 }}>
           Patrimônio
         </h2>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            onClick={() => setOwnerFilter('personal')}
-            style={{
-              padding: '0.5rem 1.25rem',
-              borderRadius: '9999px',
-              border: `1px solid ${ownerFilter === 'personal' ? themeColors.neon.purple : themeColors.border}`,
-              backgroundColor: ownerFilter === 'personal'
-                ? `${themeColors.neon.purple}33`
-                : themeColors.surface,
-              color: ownerFilter === 'personal' ? themeColors.neon.purple : themeColors.textSecondary,
-              fontSize: '0.875rem',
-              fontWeight: ownerFilter === 'personal' ? '600' : '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => setOwnerFilter('personal')}
+              style={{
+                padding: '0.5rem 1.25rem',
+                borderRadius: '9999px',
+                border: `1px solid ${ownerFilter === 'personal' ? themeColors.neon.purple : themeColors.border}`,
+                backgroundColor: ownerFilter === 'personal'
+                  ? `${themeColors.neon.purple}33`
+                  : themeColors.surface,
+                color: ownerFilter === 'personal' ? themeColors.neon.purple : themeColors.textSecondary,
+                fontSize: '0.875rem',
+                fontWeight: ownerFilter === 'personal' ? '600' : '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              Pessoal
+            </button>
+            <button
+              onClick={() => setOwnerFilter('business')}
+              style={{
+                padding: '0.5rem 1.25rem',
+                borderRadius: '9999px',
+                border: `1px solid ${ownerFilter === 'business' ? themeColors.neon.purple : themeColors.border}`,
+                backgroundColor: ownerFilter === 'business'
+                  ? `${themeColors.neon.purple}33`
+                  : themeColors.surface,
+                color: ownerFilter === 'business' ? themeColors.neon.purple : themeColors.textSecondary,
+                fontSize: '0.875rem',
+                fontWeight: ownerFilter === 'business' ? '600' : '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              Empresa
+            </button>
+          </div>
+          <Button
+            variant="primary"
+            onClick={() => setIsPatrimonyModalOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
           >
-            Pessoal
-          </button>
-          <button
-            onClick={() => setOwnerFilter('business')}
-            style={{
-              padding: '0.5rem 1.25rem',
-              borderRadius: '9999px',
-              border: `1px solid ${ownerFilter === 'business' ? themeColors.neon.purple : themeColors.border}`,
-              backgroundColor: ownerFilter === 'business'
-                ? `${themeColors.neon.purple}33`
-                : themeColors.surface,
-              color: ownerFilter === 'business' ? themeColors.neon.purple : themeColors.textSecondary,
-              fontSize: '0.875rem',
-              fontWeight: ownerFilter === 'business' ? '600' : '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            Empresa
-          </button>
+            <Plus style={{ width: '1rem', height: '1rem' }} />
+            Novo Ativo/Passivo
+          </Button>
         </div>
       </div>
 
@@ -768,6 +781,17 @@ export const PatrimonyTab: FC = () => {
           </Card>
         </div>
       </div>
+
+      {/* Modal de Novo Item de Patrimônio */}
+      <CreatePatrimonyItemModal
+        isOpen={isPatrimonyModalOpen}
+        onClose={() => setIsPatrimonyModalOpen(false)}
+        onSuccess={() => {
+          setIsPatrimonyModalOpen(false);
+          // Recarregar dados se necessário
+          // Por enquanto, os dados são mockados, então apenas fechamos o modal
+        }}
+      />
     </div>
   );
 };

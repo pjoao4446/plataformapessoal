@@ -1,4 +1,4 @@
-import { FC, useMemo, useState } from 'react';
+import { FC, useMemo, useState, useEffect } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { getTheme } from '../../../styles/theme';
 import { Card } from '../../../components/ui/Card';
@@ -15,8 +15,9 @@ import {
   Legend
 } from 'recharts';
 import { TrendingUp, TrendingDown, Wallet, ArrowUp, ArrowDown, Calendar, Eye, EyeOff } from 'lucide-react';
-import { MOCK_TRANSACTIONS, MOCK_CATEGORIES, MOCK_CARDS } from '../../../mocks/database';
 import { CreditCardVisual } from '../../../components/FinancialManagement/CreditCardVisual';
+import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../context/AuthContext';
 
 /**
  * OverviewTab - Aba de Visão Geral
@@ -26,9 +27,17 @@ import { CreditCardVisual } from '../../../components/FinancialManagement/Credit
 export const OverviewTab: FC = () => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
+  const { user } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isRealScenario, setIsRealScenario] = useState(true);
+  
+  // Estados para dados do Supabase
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [cards, setCards] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -37,20 +46,80 @@ export const OverviewTab: FC = () => {
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
-  // Calcular KPIs com tendências (mockadas)
-  const kpis = useMemo(() => {
-    const balance = MOCK_TRANSACTIONS.reduce((sum, t) => sum + t.amount, 0);
-    const income = MOCK_TRANSACTIONS
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-    const expense = Math.abs(MOCK_TRANSACTIONS
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0));
+  // Buscar dados do Supabase
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user, selectedMonth, selectedYear]);
 
-    // Tendências mockadas (comparação com mês anterior)
-    const balanceTrend = 12.5; // +12.5% vs mês passado
-    const incomeTrend = 8.3; // +8.3% vs mês passado
-    const expenseTrend = -5.2; // -5.2% vs mês passado (redução é boa)
+  const fetchData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Buscar transações do mês selecionado
+      const firstDay = new Date(selectedYear, selectedMonth - 1, 1);
+      const lastDay = new Date(selectedYear, selectedMonth, 0);
+      
+      const { data: transactionsData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', firstDay.toISOString().split('T')[0])
+        .lte('date', lastDay.toISOString().split('T')[0])
+        .order('date', { ascending: false });
+
+      // Buscar categorias
+      const { data: categoriesData } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('user_id', user.id);
+
+      // Buscar cartões
+      const { data: cardsData } = await supabase
+        .from('credit_cards')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      // Buscar contas
+      const { data: accountsData } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('user_id', user.id);
+
+      setTransactions(transactionsData || []);
+      setCategories(categoriesData || []);
+      setCards(cardsData || []);
+      setAccounts(accountsData || []);
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calcular KPIs com dados reais
+  const kpis = useMemo(() => {
+    // Calcular saldo total das contas
+    const balance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+    
+    // Receitas do mês
+    const income = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+    
+    // Despesas do mês
+    const expense = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+
+    // Calcular tendências (comparar com mês anterior)
+    // Por enquanto, valores fixos (pode ser melhorado calculando mês anterior)
+    const balanceTrend = 0;
+    const incomeTrend = 0;
+    const expenseTrend = 0;
 
     return { 
       balance, 
@@ -60,7 +129,7 @@ export const OverviewTab: FC = () => {
       incomeTrend,
       expenseTrend,
     };
-  }, []);
+  }, [transactions, accounts]);
 
   // Dados para gráfico de área (Fluxo de Caixa Diário - últimos 7 dias)
   const dailyFlowData = useMemo(() => {
@@ -69,16 +138,16 @@ export const OverviewTab: FC = () => {
       date.setDate(date.getDate() - (6 - i));
       const dateStr = date.toISOString().split('T')[0];
       
-      const dayTransactions = MOCK_TRANSACTIONS.filter(t => 
-        t.date.startsWith(dateStr)
+      const dayTransactions = transactions.filter(t => 
+        t.date && t.date.startsWith(dateStr)
       );
       
       const income = dayTransactions
         .filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0);
-      const expense = Math.abs(dayTransactions
+        .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+      const expense = dayTransactions
         .filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0));
+        .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
 
       return {
         date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
@@ -88,20 +157,19 @@ export const OverviewTab: FC = () => {
     });
     
     return last7Days;
-  }, []);
+  }, [transactions]);
 
   // Dados para gráfico Donut (Gastos por Categoria)
   const categoryData = useMemo(() => {
     const categoryMap = new Map<string, number>();
     
-    MOCK_TRANSACTIONS
-      .filter(t => t.type === 'expense')
+    transactions
+      .filter(t => t.type === 'expense' && t.category_id)
       .forEach(t => {
-        const categoryId = t.categoryId || 'outros';
-        const category = MOCK_CATEGORIES.find(c => c.id === categoryId);
+        const category = categories.find(c => c.id === t.category_id);
         const categoryName = category?.name || 'Outros';
         const current = categoryMap.get(categoryName) || 0;
-        categoryMap.set(categoryName, current + Math.abs(t.amount));
+        categoryMap.set(categoryName, current + Math.abs(t.amount || 0));
       });
 
     const total = Array.from(categoryMap.values()).reduce((sum, val) => sum + val, 0);
@@ -114,7 +182,7 @@ export const OverviewTab: FC = () => {
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 6);
-  }, []);
+  }, [transactions, categories]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -464,9 +532,10 @@ export const OverviewTab: FC = () => {
           <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: themeColors.text, marginBottom: '1.5rem', margin: 0 }}>
             Fluxo de Caixa Diário
           </h3>
-          <div style={{ width: '100%', height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={dailyFlowData}>
+          <div style={{ width: '100%', height: '300px', minHeight: '300px', position: 'relative' }}>
+            {dailyFlowData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300} minHeight={300}>
+                <AreaChart data={dailyFlowData}>
                 <defs>
                   <linearGradient id={`colorIncome-${theme}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={themeColors.neon.emerald} stopOpacity={0.6}/>
@@ -515,7 +584,18 @@ export const OverviewTab: FC = () => {
                   strokeWidth={2}
                 />
               </AreaChart>
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                height: '100%',
+                color: themeColors.textSecondary 
+              }}>
+                <p>Nenhum dado disponível</p>
+              </div>
+            )}
           </div>
         </Card>
 
@@ -525,9 +605,10 @@ export const OverviewTab: FC = () => {
             Gastos por Categoria
           </h3>
           <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-            <div style={{ width: '200px', height: '200px', flexShrink: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+            <div style={{ width: '200px', height: '200px', minWidth: '200px', minHeight: '200px', flexShrink: 0, position: 'relative' }}>
+              {categoryData.length > 0 ? (
+                <ResponsiveContainer width={200} height={200} minHeight={200}>
+                  <PieChart>
                   <Pie
                     data={categoryData}
                     cx="50%"
@@ -551,8 +632,20 @@ export const OverviewTab: FC = () => {
                     }}
                     formatter={(value: number) => formatCurrency(value)}
                   />
-                </PieChart>
-              </ResponsiveContainer>
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '100%',
+                  width: '100%',
+                  color: themeColors.textSecondary 
+                }}>
+                  <p style={{ fontSize: '0.875rem' }}>Nenhum dado</p>
+                </div>
+              )}
             </div>
             {/* Legenda Customizada com Bullet Points */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -623,17 +716,40 @@ export const OverviewTab: FC = () => {
             boxSizing: 'border-box',
           }}
         >
-          {MOCK_CARDS.map((card) => (
-            <div
-              key={card.id}
-              style={{
-                position: 'relative',
-              }}
-            >
-              {/* Componente de Cartão Visual */}
-              <CreditCardVisual card={card} />
+          {loading ? (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: themeColors.textSecondary }}>
+              Carregando cartões...
             </div>
-          ))}
+          ) : cards.length === 0 ? (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: themeColors.textSecondary }}>
+              Nenhum cartão cadastrado
+            </div>
+          ) : (
+            cards.map((card: any) => {
+              // Converter formato do Supabase para o formato esperado pelo componente
+              const cardFormatted = {
+                id: card.id,
+                name: card.name,
+                limit: card.limit_amount || 0,
+                used: 0, // Será calculado via transações
+                closingDay: card.closing_day || 10,
+                dueDay: card.due_day || 15,
+                bank: '',
+                color: card.color || '#820AD1',
+              };
+              return (
+                <div
+                  key={card.id}
+                  style={{
+                    position: 'relative',
+                  }}
+                >
+                  {/* Componente de Cartão Visual */}
+                  <CreditCardVisual card={cardFormatted} />
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>

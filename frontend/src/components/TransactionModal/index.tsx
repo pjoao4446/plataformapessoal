@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { FC } from 'react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
@@ -7,15 +7,14 @@ import { Button } from '../ui/Button';
 import { useTheme } from '../../context/ThemeContext';
 import { getTheme } from '../../styles/theme';
 import {
-  MOCK_ACCOUNTS,
-  MOCK_CARDS,
-  MOCK_CATEGORIES,
   type Transaction,
   type Account,
   type Category,
   type PaymentMethod,
   type PaymentCondition,
 } from '../../mocks/database';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 import {
   ArrowDownCircle,
   ArrowUpCircle,
@@ -42,6 +41,13 @@ export const TransactionModal: FC<TransactionModalProps> = ({
 }) => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
+  const { user } = useAuth();
+  
+  // Estados para dados do Supabase
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [cards, setCards] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
 
   // Estado da aba atual
   const [activeTab, setActiveTab] = useState<TabType>('expense');
@@ -58,8 +64,8 @@ export const TransactionModal: FC<TransactionModalProps> = ({
   const [newCategoryName, setNewCategoryName] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('debit_card');
   const [paymentCondition, setPaymentCondition] = useState<PaymentCondition>('spot');
-  const [expenseAccountId, setExpenseAccountId] = useState(MOCK_ACCOUNTS[0]?.id || '');
-  const [expenseCardId, setExpenseCardId] = useState(MOCK_CARDS[0]?.id || '');
+  const [expenseAccountId, setExpenseAccountId] = useState('');
+  const [expenseCardId, setExpenseCardId] = useState('');
   const [isPaid, setIsPaid] = useState(true);
   const [installmentsTotal, setInstallmentsTotal] = useState(2);
   const [installmentStartNow, setInstallmentStartNow] = useState(true);
@@ -70,29 +76,85 @@ export const TransactionModal: FC<TransactionModalProps> = ({
   const [incomeCategoryId, setIncomeCategoryId] = useState('');
   const [isCreatingIncomeCategory, setIsCreatingIncomeCategory] = useState(false);
   const [newIncomeCategoryName, setNewIncomeCategoryName] = useState('');
-  const [incomeAccountId, setIncomeAccountId] = useState(MOCK_ACCOUNTS[0]?.id || '');
+  const [incomeAccountId, setIncomeAccountId] = useState('');
 
   // Estados para TRANSFERÊNCIA
   const [transferAmount, setTransferAmount] = useState('');
-  const [fromAccountId, setFromAccountId] = useState(MOCK_ACCOUNTS[0]?.id || '');
-  const [toAccountId, setToAccountId] = useState(MOCK_ACCOUNTS[1]?.id || '');
+  const [fromAccountId, setFromAccountId] = useState('');
+  const [toAccountId, setToAccountId] = useState('');
   const [transferDescription, setTransferDescription] = useState('');
+
+  // Buscar dados do Supabase
+  useEffect(() => {
+    if (isOpen && user) {
+      fetchData();
+    }
+  }, [isOpen, user]);
+
+  const fetchData = async () => {
+    if (!user) return;
+    
+    setLoadingData(true);
+    try {
+      // Buscar contas
+      const { data: accountsData } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      // Buscar cartões
+      const { data: cardsData } = await supabase
+        .from('credit_cards')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      // Buscar categorias
+      const { data: categoriesData } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
+
+      setAccounts(accountsData || []);
+      setCards(cardsData || []);
+      setCategories(categoriesData || []);
+
+      // Preencher valores padrão quando dados carregarem
+      if (accountsData && accountsData.length > 0) {
+        setExpenseAccountId(accountsData[0].id);
+        setIncomeAccountId(accountsData[0].id);
+        setFromAccountId(accountsData[0].id);
+        if (accountsData.length > 1) {
+          setToAccountId(accountsData[1].id);
+        }
+      }
+      if (cardsData && cardsData.length > 0) {
+        setExpenseCardId(cardsData[0].id);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   // Filtrar categorias por tipo
   const expenseCategories = useMemo(() => 
-    MOCK_CATEGORIES.filter(cat => cat.type === 'expense'),
-    []
+    categories.filter(cat => cat.type === 'expense'),
+    [categories]
   );
 
   const incomeCategories = useMemo(() => 
-    MOCK_CATEGORIES.filter(cat => cat.type === 'income'),
-    []
+    categories.filter(cat => cat.type === 'income'),
+    [categories]
   );
 
   // Filtrar contas de destino (não pode ser a mesma da origem)
   const availableDestinationAccounts = useMemo(() => 
-    MOCK_ACCOUNTS.filter(acc => acc.id !== fromAccountId),
-    [fromAccountId]
+    accounts.filter(acc => acc.id !== fromAccountId),
+    [fromAccountId, accounts]
   );
 
   // Resetar formulário ao fechar
@@ -105,8 +167,8 @@ export const TransactionModal: FC<TransactionModalProps> = ({
     setNewCategoryName('');
     setPaymentMethod('debit_card');
     setPaymentCondition('spot');
-    setExpenseAccountId(MOCK_ACCOUNTS[0]?.id || '');
-    setExpenseCardId(MOCK_CARDS[0]?.id || '');
+    setExpenseAccountId(accounts[0]?.id || '');
+    setExpenseCardId(cards[0]?.id || '');
     setIsPaid(true);
     setInstallmentsTotal(2);
     setInstallmentStartNow(true);
@@ -115,10 +177,10 @@ export const TransactionModal: FC<TransactionModalProps> = ({
     setIncomeCategoryId('');
     setIsCreatingIncomeCategory(false);
     setNewIncomeCategoryName('');
-    setIncomeAccountId(MOCK_ACCOUNTS[0]?.id || '');
+    setIncomeAccountId(accounts[0]?.id || '');
     setTransferAmount('');
-    setFromAccountId(MOCK_ACCOUNTS[0]?.id || '');
-    setToAccountId(MOCK_ACCOUNTS[1]?.id || '');
+    setFromAccountId(accounts[0]?.id || '');
+    setToAccountId(accounts[1]?.id || '');
     setTransferDescription('');
     setShowDatePicker(false);
     onClose();
@@ -200,7 +262,7 @@ export const TransactionModal: FC<TransactionModalProps> = ({
       }
 
       const transaction: Omit<Transaction, 'id'> = {
-        description: transferDescription.trim() || `Transferência de ${MOCK_ACCOUNTS.find(a => a.id === fromAccountId)?.name} para ${MOCK_ACCOUNTS.find(a => a.id === toAccountId)?.name}`,
+        description: transferDescription.trim() || `Transferência de ${accounts.find(a => a.id === fromAccountId)?.name} para ${accounts.find(a => a.id === toAccountId)?.name}`,
         amount: parseFloat(transferAmount),
         type: 'transfer',
         category: 'Transferência',
@@ -653,9 +715,9 @@ export const TransactionModal: FC<TransactionModalProps> = ({
                     onChange={(e) => setExpenseCardId(e.target.value)}
                     required
                   >
-                    {MOCK_CARDS.map((card) => (
+                    {cards.map((card: any) => (
                       <option key={card.id} value={card.id}>
-                        {card.name} ({card.bank}) - Limite: R$ {card.limit.toLocaleString('pt-BR')}
+                        {card.name} - Limite: R$ {(card.limit_amount || 0).toLocaleString('pt-BR')}
                       </option>
                     ))}
                   </Select>
@@ -666,9 +728,9 @@ export const TransactionModal: FC<TransactionModalProps> = ({
                     onChange={(e) => setExpenseAccountId(e.target.value)}
                     required
                   >
-                    {MOCK_ACCOUNTS.map((acc) => (
+                    {accounts.map((acc: any) => (
                       <option key={acc.id} value={acc.id}>
-                        {acc.name} ({acc.bank})
+                        {acc.name} {acc.bank_name ? `(${acc.bank_name})` : ''}
                       </option>
                     ))}
                   </Select>
@@ -740,9 +802,9 @@ export const TransactionModal: FC<TransactionModalProps> = ({
                     onChange={(e) => setExpenseCardId(e.target.value)}
                     required
                   >
-                    {MOCK_CARDS.map((card) => (
+                    {cards.map((card: any) => (
                       <option key={card.id} value={card.id}>
-                        {card.name} ({card.bank}) - Limite: R$ {card.limit.toLocaleString('pt-BR')}
+                        {card.name} - Limite: R$ {(card.limit_amount || 0).toLocaleString('pt-BR')}
                       </option>
                     ))}
                   </Select>
@@ -753,9 +815,9 @@ export const TransactionModal: FC<TransactionModalProps> = ({
                     onChange={(e) => setExpenseAccountId(e.target.value)}
                     required
                   >
-                    {MOCK_ACCOUNTS.map((acc) => (
+                    {accounts.map((acc: any) => (
                       <option key={acc.id} value={acc.id}>
-                        {acc.name} ({acc.bank})
+                        {acc.name} {acc.bank_name ? `(${acc.bank_name})` : ''}
                       </option>
                     ))}
                   </Select>
@@ -784,9 +846,9 @@ export const TransactionModal: FC<TransactionModalProps> = ({
                     onChange={(e) => setExpenseCardId(e.target.value)}
                     required
                   >
-                    {MOCK_CARDS.map((card) => (
+                    {cards.map((card: any) => (
                       <option key={card.id} value={card.id}>
-                        {card.name} ({card.bank}) - Limite: R$ {card.limit.toLocaleString('pt-BR')}
+                        {card.name} - Limite: R$ {(card.limit_amount || 0).toLocaleString('pt-BR')}
                       </option>
                     ))}
                   </Select>
@@ -797,9 +859,9 @@ export const TransactionModal: FC<TransactionModalProps> = ({
                     onChange={(e) => setExpenseAccountId(e.target.value)}
                     required
                   >
-                    {MOCK_ACCOUNTS.map((acc) => (
+                    {accounts.map((acc: any) => (
                       <option key={acc.id} value={acc.id}>
-                        {acc.name} ({acc.bank})
+                        {acc.name} {acc.bank_name ? `(${acc.bank_name})` : ''}
                       </option>
                     ))}
                   </Select>
@@ -1058,9 +1120,9 @@ export const TransactionModal: FC<TransactionModalProps> = ({
               onChange={(e) => setIncomeAccountId(e.target.value)}
               required
             >
-              {MOCK_ACCOUNTS.map((acc) => (
+              {accounts.map((acc: any) => (
                 <option key={acc.id} value={acc.id}>
-                  {acc.name} ({acc.bank})
+                  {acc.name} {acc.bank_name ? `(${acc.bank_name})` : ''}
                 </option>
               ))}
             </Select>
@@ -1177,9 +1239,9 @@ export const TransactionModal: FC<TransactionModalProps> = ({
               }}
               required
             >
-              {MOCK_ACCOUNTS.map((acc) => (
+              {accounts.map((acc: any) => (
                 <option key={acc.id} value={acc.id}>
-                  {acc.name} ({acc.bank})
+                  {acc.name} {acc.bank_name ? `(${acc.bank_name})` : ''}
                 </option>
               ))}
             </Select>
@@ -1193,7 +1255,7 @@ export const TransactionModal: FC<TransactionModalProps> = ({
             >
               {availableDestinationAccounts.map((acc) => (
                 <option key={acc.id} value={acc.id}>
-                  {acc.name} ({acc.bank})
+                  {acc.name} {acc.bank_name ? `(${acc.bank_name})` : ''}
                 </option>
               ))}
             </Select>

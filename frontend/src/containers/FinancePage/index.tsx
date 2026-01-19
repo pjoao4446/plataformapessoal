@@ -19,7 +19,7 @@ import { TransactionsTab } from './tabs/TransactionsTab';
 import { RecurrencesTab } from './tabs/RecurrencesTab';
 import { PatrimonyTab } from './tabs/PatrimonyTab';
 import { CategoriesTab } from './tabs/CategoriesTab';
-import { MOCK_CARDS, type CreditCard } from '../../mocks/database';
+import type { CreditCard } from '../../mocks/database';
 
 type TabType = 'overview' | 'transactions' | 'wallet' | 'recurrences' | 'patrimony' | 'categories';
 
@@ -33,7 +33,7 @@ export const FinancePage: FC = () => {
   const themeColors = getTheme(theme).colors;
   const { setTitle } = usePageTitleContext();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
-  const [cards, setCards] = useState<CreditCard[]>(MOCK_CARDS);
+  const [cards, setCards] = useState<CreditCard[]>([]);
 
   const tabs = [
     { id: 'overview' as TabType, label: 'Visão Geral', icon: LayoutDashboard },

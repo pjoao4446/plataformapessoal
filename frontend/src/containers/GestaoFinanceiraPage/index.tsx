@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { FC } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Modal } from '../../components/ui/Modal';
@@ -16,15 +16,9 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getTheme } from '../../styles/theme';
-import {
-  MOCK_TRANSACTIONS,
-  MOCK_FINANCIAL_GOALS,
-  getGoalById,
-  calculateBalance,
-  getIncomeTotal,
-  getExpenseTotal,
-  type Transaction,
-} from '../../mocks/database';
+import type { Transaction } from '../../mocks/database';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts';
 
 /**
@@ -35,8 +29,11 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 
 export const GestaoFinanceiraPage: FC = () => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [financialGoals, setFinancialGoals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -46,10 +43,55 @@ export const GestaoFinanceiraPage: FC = () => {
     goalId: '',
   });
 
+  // Buscar dados do Supabase
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  const fetchData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Buscar transações
+      const { data: transactionsData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      // Buscar metas financeiras (se existir)
+      setTransactions(transactionsData || []);
+      setFinancialGoals([]);
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Calcular saldo e totais
-  const balance = useMemo(() => calculateBalance(transactions), [transactions]);
-  const incomeTotal = useMemo(() => getIncomeTotal(transactions), [transactions]);
-  const expenseTotal = useMemo(() => getExpenseTotal(transactions), [transactions]);
+  const balance = useMemo(() => {
+    return transactions.reduce((sum, t) => {
+      if (t.type === 'income') return sum + Math.abs(t.amount || 0);
+      if (t.type === 'expense') return sum - Math.abs(t.amount || 0);
+      return sum;
+    }, 0);
+  }, [transactions]);
+  
+  const incomeTotal = useMemo(() => {
+    return transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+  }, [transactions]);
+  
+  const expenseTotal = useMemo(() => {
+    return transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+  }, [transactions]);
 
   // Dados para gráfico de barras (últimos 7 dias)
   const chartData = useMemo(() => {
@@ -59,13 +101,20 @@ export const GestaoFinanceiraPage: FC = () => {
       const dateStr = date.toISOString().split('T')[0];
       
       const dayTransactions = transactions.filter(t => 
-        t.date.startsWith(dateStr)
+        t.date && t.date.startsWith(dateStr)
       );
+      
+      const income = dayTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+      const expense = dayTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
       
       return {
         date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-        income: getIncomeTotal(dayTransactions),
-        expense: getExpenseTotal(dayTransactions),
+        income,
+        expense,
       };
     });
     
@@ -354,7 +403,7 @@ export const GestaoFinanceiraPage: FC = () => {
                 </tr>
               ) : (
                 transactions.map((transaction) => {
-                  const goal = transaction.goalId ? getGoalById(transaction.goalId) : null;
+                  const goal = transaction.goal_id ? financialGoals.find(g => g.id === transaction.goal_id) : null;
                   const isIncome = transaction.type === 'income';
 
                   return (
@@ -589,7 +638,7 @@ export const GestaoFinanceiraPage: FC = () => {
             onChange={(e) => setFormData({ ...formData, goalId: e.target.value })}
           >
             <option value="">Nenhuma meta</option>
-            {MOCK_FINANCIAL_GOALS.map((goal) => (
+            {financialGoals.map((goal: any) => (
               <option key={goal.id} value={goal.id}>
                 {goal.title} ({goal.type === 'investment' ? 'Investimento' : 'Dívida'})
               </option>

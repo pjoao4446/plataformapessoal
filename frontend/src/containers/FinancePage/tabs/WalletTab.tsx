@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { FC } from 'react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -15,13 +15,12 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { getTheme } from '../../../styles/theme';
-import {
-  MOCK_ACCOUNTS,
-  MOCK_CARDS,
-  type Account,
-  type CreditCard,
-} from '../../../mocks/database';
+import type { Account, CreditCard } from '../../../mocks/database';
 import { CreditCardVisual } from '../../../components/FinancialManagement/CreditCardVisual';
+import { CreateAccountModal } from '../../../components/modals/CreateAccountModal';
+import { CreateCreditCardModal } from '../../../components/modals/CreateCreditCardModal';
+import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../context/AuthContext';
 
 /**
  * WalletTab - Componente da aba Carteira
@@ -35,35 +34,92 @@ interface WalletTabProps {
 export const WalletTab: FC<WalletTabProps> = ({ cards, setCards }) => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
+  const { user } = useAuth();
   
   // Estados locais para gerenciar contas
-  const [accounts, setAccounts] = useState<Account[]>(MOCK_ACCOUNTS);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+  const [loadingCards, setLoadingCards] = useState(false);
   
   // Estados dos modais
-  const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
-  const [isAddCardOpen, setIsAddCardOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   
-  // Estados do formulário de conta
-  const [accountForm, setAccountForm] = useState({
-    name: '',
-    bank: 'nubank',
-    type: 'checking' as 'checking' | 'investment' | 'cash',
-    balance: 0,
-    color: '#820AD1',
-  });
-  
-  // Estados do formulário de cartão
-  const [cardForm, setCardForm] = useState({
-    name: '',
-    bank: 'nubank',
-    limit: 0,
-    closingDay: 10,
-    dueDay: 15,
-    color: '#820AD1',
-    brand: 'mastercard' as 'mastercard' | 'visa',
-  });
+  // Função para buscar contas do Supabase
+  const fetchAccounts = async () => {
+    if (!user) return;
+    
+    setLoadingAccounts(true);
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        // Converter dados do Supabase para o formato esperado
+        const formattedAccounts: Account[] = data.map((acc: any) => ({
+          id: acc.id,
+          name: acc.name,
+          bank: acc.bank_name || acc.bank || '',
+          balance: acc.balance || 0,
+          type: acc.type || 'checking',
+          color: acc.color || '#10B981',
+        }));
+        setAccounts(formattedAccounts);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar contas:', error);
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
+
+  // Função para buscar cartões do Supabase
+  const fetchCards = async () => {
+    if (!user) return;
+    
+    setLoadingCards(true);
+    try {
+      const { data, error } = await supabase
+        .from('credit_cards')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        // Converter dados do Supabase para o formato esperado
+        const formattedCards: CreditCard[] = data.map((card: any) => ({
+          id: card.id,
+          name: card.name,
+          limit: card.limit_amount || card.limit || 0, // Usar limit_amount (coluna correta)
+          used: 0, // Calculado via transações
+          closingDay: card.closing_day || 10,
+          dueDay: card.due_day || 15,
+          color: card.color || '#820AD1',
+          bank: card.bank_name || card.bank || '',
+        }));
+        setCards(formattedCards);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar cartões:', error);
+    } finally {
+      setLoadingCards(false);
+    }
+  };
+
+  // Carregar dados ao montar o componente
+  useEffect(() => {
+    if (user) {
+      fetchAccounts();
+      fetchCards();
+    }
+  }, [user]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -145,113 +201,52 @@ export const WalletTab: FC<WalletTabProps> = ({ cards, setCards }) => {
   };
 
   const handleOpenAddAccount = () => {
-    setAccountForm({
-      name: '',
-      bank: 'nubank',
-      type: 'checking',
-      balance: 0,
-      color: '#820AD1',
-    });
-    setEditingAccount(null);
-    setIsAddAccountOpen(true);
+    setIsAccountModalOpen(true);
   };
 
-  const handleOpenEditAccount = (account: Account) => {
-    setAccountForm({
-      name: account.name,
-      bank: account.bank,
-      type: account.type,
-      balance: account.balance,
-      color: account.color,
-    });
-    setEditingAccount(account);
-    setIsAddAccountOpen(true);
+  const handleAccountSuccess = () => {
+    fetchAccounts();
   };
 
-  const handleSaveAccount = () => {
-    if (!accountForm.name.trim()) return;
+  const handleDeleteAccount = async (accountId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta conta?')) return;
     
-    if (editingAccount) {
-      // Editar conta existente
-      setAccounts(accounts.map(acc =>
-        acc.id === editingAccount.id
-          ? { ...acc, ...accountForm }
-          : acc
-      ));
-    } else {
-      // Adicionar nova conta
-      const newAccount: Account = {
-        id: `acc${Date.now()}`,
-        ...accountForm,
-      };
-      setAccounts([...accounts, newAccount]);
-    }
-    
-    setIsAddAccountOpen(false);
-    setEditingAccount(null);
-  };
+    try {
+      const { error } = await supabase
+        .from('accounts')
+        .delete()
+        .eq('id', accountId);
 
-  const handleDeleteAccount = (accountId: string) => {
-    if (confirm('Tem certeza que deseja excluir esta conta?')) {
-      setAccounts(accounts.filter(acc => acc.id !== accountId));
+      if (error) throw error;
+      fetchAccounts();
+    } catch (error) {
+      console.error('Erro ao excluir conta:', error);
+      alert('Erro ao excluir conta. Tente novamente.');
     }
   };
 
   const handleOpenAddCard = () => {
-    setCardForm({
-      name: '',
-      bank: 'nubank',
-      limit: 0,
-      closingDay: 10,
-      dueDay: 15,
-      color: '#820AD1',
-      brand: 'mastercard',
-    });
-    setEditingCard(null);
-    setIsAddCardOpen(true);
+    setIsCardModalOpen(true);
   };
 
-  const handleOpenEditCard = (card: CreditCard) => {
-    setCardForm({
-      name: card.name,
-      bank: card.bank,
-      limit: card.limit,
-      closingDay: card.closingDay,
-      dueDay: card.dueDay,
-      color: card.color,
-      brand: card.brand || 'mastercard',
-    });
-    setEditingCard(card);
-    setIsAddCardOpen(true);
+  const handleCardSuccess = () => {
+    fetchCards();
   };
 
-  const handleSaveCard = () => {
-    if (!cardForm.name.trim()) return;
+  const handleDeleteCard = async (cardId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este cartão?')) return;
     
-    if (editingCard) {
-      // Editar cartão existente
-      setCards(cards.map(card =>
-        card.id === editingCard.id
-          ? { ...card, ...cardForm, used: editingCard.used }
-          : card
-      ));
-    } else {
-      // Adicionar novo cartão
-      const newCard: CreditCard = {
-        id: `card${Date.now()}`,
-        ...cardForm,
-        used: 0,
-      };
-      setCards([...cards, newCard]);
-    }
-    
-    setIsAddCardOpen(false);
-    setEditingCard(null);
-  };
+    try {
+      const { error } = await supabase
+        .from('credit_cards')
+        .delete()
+        .eq('id', cardId);
 
-  const handleDeleteCard = (cardId: string) => {
-    if (confirm('Tem certeza que deseja excluir este cartão?')) {
-      setCards(cards.filter(card => card.id !== cardId));
+      if (error) throw error;
+      fetchCards();
+    } catch (error) {
+      console.error('Erro ao excluir cartão:', error);
+      alert('Erro ao excluir cartão. Tente novamente.');
     }
   };
 
@@ -350,32 +345,26 @@ export const WalletTab: FC<WalletTabProps> = ({ cards, setCards }) => {
                     zIndex: 10,
                   }}
                 >
-                  <button
+                  {/* Botão de editar temporariamente desabilitado */}
+                  {/* <button
                     type="button"
-                    onClick={() => handleOpenEditAccount(account)}
+                    onClick={() => {}}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.375rem',
                       border: `1px solid ${themeColors.border}`,
                       backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
                       color: themeColors.textSecondary,
-                      cursor: 'pointer',
+                      cursor: 'not-allowed',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = themeColors.neon.purple;
-                      e.currentTarget.style.color = themeColors.neon.purple;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = themeColors.border;
-                      e.currentTarget.style.color = themeColors.textSecondary;
+                      opacity: 0.5,
                     }}
                   >
                     <Edit style={{ width: '0.875rem', height: '0.875rem' }} />
-                  </button>
+                  </button> */}
                   <button
                     type="button"
                     onClick={() => handleDeleteAccount(account.id)}
@@ -529,28 +518,24 @@ export const WalletTab: FC<WalletTabProps> = ({ cards, setCards }) => {
                     zIndex: 10,
                   }}
                 >
-                  <button
+                  {/* Botão de editar temporariamente desabilitado */}
+                  {/* <button
                     type="button"
-                    onClick={() => handleOpenEditCard(card)}
+                    onClick={() => {}}
                     style={{
                       padding: '0.5rem',
                       borderRadius: '0.5rem',
                       border: '1px solid rgba(255, 255, 255, 0.3)',
                       backgroundColor: 'rgba(255, 255, 255, 0.2)',
                       color: 'white',
-                      cursor: 'pointer',
+                      cursor: 'not-allowed',
                       backdropFilter: 'blur(10px)',
                       transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                      opacity: 0.5,
                     }}
                   >
                     <Edit style={{ width: '1rem', height: '1rem' }} />
-                  </button>
+                  </button> */}
                   <button
                     type="button"
                     onClick={() => handleDeleteCard(card.id)}
@@ -583,365 +568,18 @@ export const WalletTab: FC<WalletTabProps> = ({ cards, setCards }) => {
         </div>
       </div>
 
-      {/* Modal Adicionar/Editar Conta */}
-      {isAddAccountOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem',
-            backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.75)' : 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(4px)',
-          }}
-          onClick={() => setIsAddAccountOpen(false)}
-        >
-          <Card
-            padding="lg"
-            variant="glass"
-            style={{ maxWidth: '500px', width: '100%' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: themeColors.text, margin: '0 0 1.5rem 0' }}>
-              {editingAccount ? 'Editar Conta' : 'Nova Conta'}
-            </h3>
+      {/* Modais de Criação */}
+      <CreateAccountModal
+        isOpen={isAccountModalOpen}
+        onClose={() => setIsAccountModalOpen(false)}
+        onSuccess={handleAccountSuccess}
+      />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: themeColors.text, marginBottom: '0.5rem' }}>
-                  Nome da Conta
-                </label>
-                <input
-                  type="text"
-                  value={accountForm.name}
-                  onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })}
-                  placeholder="Ex: Conta Corrente Principal"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '0.5rem',
-                    border: `1px solid ${themeColors.border}`,
-                    backgroundColor: themeColors.surface,
-                    color: themeColors.text,
-                    fontSize: '0.875rem',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: themeColors.text, marginBottom: '0.5rem' }}>
-                  Banco
-                </label>
-                <select
-                  value={accountForm.bank}
-                  onChange={(e) => setAccountForm({ ...accountForm, bank: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '0.5rem',
-                    border: `1px solid ${themeColors.border}`,
-                    backgroundColor: themeColors.surface,
-                    color: themeColors.text,
-                    fontSize: '0.875rem',
-                  }}
-                >
-                  <option value="nubank">Nubank</option>
-                  <option value="inter">Inter</option>
-                  <option value="xp">XP Investimentos</option>
-                  <option value="itau">Itaú</option>
-                  <option value="bradesco">Bradesco</option>
-                  <option value="wallet">Carteira</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: themeColors.text, marginBottom: '0.5rem' }}>
-                  Tipo
-                </label>
-                <select
-                  value={accountForm.type}
-                  onChange={(e) => setAccountForm({ ...accountForm, type: e.target.value as any })}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '0.5rem',
-                    border: `1px solid ${themeColors.border}`,
-                    backgroundColor: themeColors.surface,
-                    color: themeColors.text,
-                    fontSize: '0.875rem',
-                  }}
-                >
-                  <option value="checking">Conta Corrente</option>
-                  <option value="investment">Investimento</option>
-                  <option value="cash">Dinheiro</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: themeColors.text, marginBottom: '0.5rem' }}>
-                  Saldo Inicial
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={accountForm.balance}
-                  onChange={(e) => setAccountForm({ ...accountForm, balance: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '0.5rem',
-                    border: `1px solid ${themeColors.border}`,
-                    backgroundColor: themeColors.surface,
-                    color: themeColors.text,
-                    fontSize: '0.875rem',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: themeColors.text, marginBottom: '0.5rem' }}>
-                  Cor
-                </label>
-                <input
-                  type="color"
-                  value={accountForm.color}
-                  onChange={(e) => setAccountForm({ ...accountForm, color: e.target.value })}
-                  style={{
-                    width: '100%',
-                    height: '3rem',
-                    borderRadius: '0.5rem',
-                    border: `1px solid ${themeColors.border}`,
-                    cursor: 'pointer',
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsAddAccountOpen(false)}
-                  style={{ flex: 1 }}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleSaveAccount}
-                  style={{ flex: 1 }}
-                >
-                  {editingAccount ? 'Salvar' : 'Adicionar'}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Modal Adicionar/Editar Cartão */}
-      {isAddCardOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem',
-            backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.75)' : 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(4px)',
-          }}
-          onClick={() => setIsAddCardOpen(false)}
-        >
-          <Card
-            padding="lg"
-            variant="glass"
-            style={{ maxWidth: '500px', width: '100%' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: themeColors.text, margin: '0 0 1.5rem 0' }}>
-              {editingCard ? 'Editar Cartão' : 'Novo Cartão'}
-            </h3>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: themeColors.text, marginBottom: '0.5rem' }}>
-                  Nome do Cartão
-                </label>
-                <input
-                  type="text"
-                  value={cardForm.name}
-                  onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })}
-                  placeholder="Ex: Nubank Ultravioleta"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '0.5rem',
-                    border: `1px solid ${themeColors.border}`,
-                    backgroundColor: themeColors.surface,
-                    color: themeColors.text,
-                    fontSize: '0.875rem',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: themeColors.text, marginBottom: '0.5rem' }}>
-                  Banco
-                </label>
-                <select
-                  value={cardForm.bank}
-                  onChange={(e) => setCardForm({ ...cardForm, bank: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '0.5rem',
-                    border: `1px solid ${themeColors.border}`,
-                    backgroundColor: themeColors.surface,
-                    color: themeColors.text,
-                    fontSize: '0.875rem',
-                  }}
-                >
-                  <option value="nubank">Nubank</option>
-                  <option value="inter">Inter</option>
-                  <option value="xp">XP Investimentos</option>
-                  <option value="itau">Itaú</option>
-                  <option value="bradesco">Bradesco</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: themeColors.text, marginBottom: '0.5rem' }}>
-                  Limite
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={cardForm.limit}
-                  onChange={(e) => setCardForm({ ...cardForm, limit: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '0.5rem',
-                    border: `1px solid ${themeColors.border}`,
-                    backgroundColor: themeColors.surface,
-                    color: themeColors.text,
-                    fontSize: '0.875rem',
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: themeColors.text, marginBottom: '0.5rem' }}>
-                    Dia Fechamento
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={cardForm.closingDay}
-                    onChange={(e) => setCardForm({ ...cardForm, closingDay: parseInt(e.target.value) || 1 })}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '0.5rem',
-                      border: `1px solid ${themeColors.border}`,
-                      backgroundColor: themeColors.surface,
-                      color: themeColors.text,
-                      fontSize: '0.875rem',
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: themeColors.text, marginBottom: '0.5rem' }}>
-                    Dia Vencimento
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={cardForm.dueDay}
-                    onChange={(e) => setCardForm({ ...cardForm, dueDay: parseInt(e.target.value) || 1 })}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '0.5rem',
-                      border: `1px solid ${themeColors.border}`,
-                      backgroundColor: themeColors.surface,
-                      color: themeColors.text,
-                      fontSize: '0.875rem',
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: themeColors.text, marginBottom: '0.5rem' }}>
-                  Bandeira
-                </label>
-                <select
-                  value={cardForm.brand}
-                  onChange={(e) => setCardForm({ ...cardForm, brand: e.target.value as 'mastercard' | 'visa' })}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '0.5rem',
-                    border: `1px solid ${themeColors.border}`,
-                    backgroundColor: themeColors.surface,
-                    color: themeColors.text,
-                    fontSize: '0.875rem',
-                  }}
-                >
-                  <option value="mastercard">Mastercard</option>
-                  <option value="visa">Visa</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: themeColors.text, marginBottom: '0.5rem' }}>
-                  Cor
-                </label>
-                <input
-                  type="color"
-                  value={cardForm.color}
-                  onChange={(e) => setCardForm({ ...cardForm, color: e.target.value })}
-                  style={{
-                    width: '100%',
-                    height: '3rem',
-                    borderRadius: '0.5rem',
-                    border: `1px solid ${themeColors.border}`,
-                    cursor: 'pointer',
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsAddCardOpen(false)}
-                  style={{ flex: 1 }}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleSaveCard}
-                  style={{ flex: 1 }}
-                >
-                  {editingCard ? 'Salvar' : 'Adicionar'}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
+      <CreateCreditCardModal
+        isOpen={isCardModalOpen}
+        onClose={() => setIsCardModalOpen(false)}
+        onSuccess={handleCardSuccess}
+      />
 
       {/* CSS para grid responsivo de cartões */}
       <style>{`

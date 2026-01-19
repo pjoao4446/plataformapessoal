@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { FC } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -18,12 +18,13 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { getTheme } from '../../styles/theme';
 import {
-  MOCK_PROJECTS,
   calculateProjectProgress,
   type Project,
   type ProjectStatus,
   type Milestone,
 } from '../../mocks/database';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * GoalsBusinessPage - Página de Metas Empresariais e Projetos
@@ -33,7 +34,36 @@ import {
 export const GoalsBusinessPage: FC = () => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
-  const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Buscar projetos do Supabase
+  useEffect(() => {
+    if (user) {
+      fetchProjects();
+    }
+  }, [user]);
+
+  const fetchProjects = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Por enquanto, deixar vazio pois pode não haver tabela de projetos
+      // Se houver, buscar assim:
+      // const { data } = await supabase
+      //   .from('projects')
+      //   .select('*')
+      //   .eq('user_id', user.id);
+      // setProjects(data || []);
+      setProjects([]);
+    } catch (err) {
+      console.error('Erro ao carregar projetos:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calcular estatísticas
   const stats = useMemo(() => {
@@ -191,7 +221,23 @@ export const GoalsBusinessPage: FC = () => {
           gap: '1.5rem',
         }}
       >
-        {projects.map(project => {
+        {loading ? (
+          <Card padding="lg">
+            <div style={{ textAlign: 'center', padding: '2rem', color: themeColors.textSecondary }}>
+              Carregando projetos...
+            </div>
+          </Card>
+        ) : projects.length === 0 ? (
+          <Card padding="lg">
+            <div style={{ textAlign: 'center', padding: '2rem', color: themeColors.textSecondary }}>
+              <Building2 style={{ width: '3rem', height: '3rem', color: themeColors.textMuted, margin: '0 auto 1rem' }} />
+              <p style={{ margin: 0 }}>
+                Nenhum projeto cadastrado
+              </p>
+            </div>
+          </Card>
+        ) : (
+          projects.map((project: Project) => {
           const statusConfig = getStatusConfig(project.status);
           const StatusIcon = statusConfig.icon;
           const currentProgress = calculateProjectProgress(project.milestones);
@@ -399,7 +445,8 @@ export const GoalsBusinessPage: FC = () => {
               )}
             </Card>
           );
-        })}
+          })
+        )}
       </div>
     </PageContainer>
   );

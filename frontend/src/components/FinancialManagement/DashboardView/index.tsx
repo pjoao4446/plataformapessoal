@@ -1,12 +1,8 @@
-import { FC, useState, useMemo } from 'react';
+import { FC, useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 import { DashboardHeader } from '../DashboardHeader';
-import { 
-  MOCK_TRANSACTIONS, 
-  calculateBalance, 
-  getIncomeTotal, 
-  getExpenseTotal 
-} from '../../../mocks/database';
+import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../context/AuthContext';
 
 const Container = styled.div`
   padding: 0;
@@ -47,21 +43,67 @@ const CardValue = styled.h3<{ $positive?: boolean }>`
 `;
 
 export const DashboardView: FC = () => {
+  const { user } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Buscar transações do Supabase
+  useEffect(() => {
+    if (user) {
+      fetchTransactions();
+    }
+  }, [user, selectedMonth, selectedYear]);
+
+  const fetchTransactions = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const firstDay = new Date(selectedYear, selectedMonth - 1, 1);
+      const lastDay = new Date(selectedYear, selectedMonth, 0);
+      
+      const { data } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', firstDay.toISOString().split('T')[0])
+        .lte('date', lastDay.toISOString().split('T')[0])
+        .order('date', { ascending: false });
+
+      setTransactions(data || []);
+    } catch (err) {
+      console.error('Erro ao carregar transações:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filtrar transações do mês selecionado
   const filteredTransactions = useMemo(() => {
-    return MOCK_TRANSACTIONS.filter(transaction => {
-      const transactionDate = new Date(transaction.date);
-      return transactionDate.getMonth() + 1 === selectedMonth && 
-             transactionDate.getFullYear() === selectedYear;
-    });
-  }, [selectedMonth, selectedYear]);
+    return transactions;
+  }, [transactions]);
 
-  const balance = useMemo(() => calculateBalance(filteredTransactions), [filteredTransactions]);
-  const incomeTotal = useMemo(() => getIncomeTotal(filteredTransactions), [filteredTransactions]);
-  const expenseTotal = useMemo(() => getExpenseTotal(filteredTransactions), [filteredTransactions]);
+  const balance = useMemo(() => {
+    return filteredTransactions.reduce((sum, t) => {
+      if (t.type === 'income') return sum + Math.abs(t.amount || 0);
+      if (t.type === 'expense') return sum - Math.abs(t.amount || 0);
+      return sum;
+    }, 0);
+  }, [filteredTransactions]);
+  
+  const incomeTotal = useMemo(() => {
+    return filteredTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+  }, [filteredTransactions]);
+  
+  const expenseTotal = useMemo(() => {
+    return filteredTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+  }, [filteredTransactions]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {

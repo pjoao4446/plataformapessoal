@@ -2,6 +2,7 @@ import { FC, useMemo, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { getTheme } from '../../../styles/theme';
 import { Card } from '../../../components/ui/Card';
+import { Button } from '../../../components/ui/Button';
 import { 
   BarChart, 
   Bar, 
@@ -11,7 +12,8 @@ import {
   Tooltip,
   Cell
 } from 'recharts';
-import { Repeat, CreditCard, FileText, Building2, Calendar, Music, Video, Home, Smartphone, LayoutDashboard, AlertCircle } from 'lucide-react';
+import { Repeat, CreditCard, FileText, Building2, Calendar, Music, Video, Home, Smartphone, LayoutDashboard, AlertCircle, Plus } from 'lucide-react';
+import { CreateRecurrenceModal } from '../../../components/modals/CreateRecurrenceModal';
 
 /**
  * RecurrencesTab - Aba de Recorrências
@@ -23,6 +25,7 @@ export const RecurrencesTab: FC = () => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
+  const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
 
   // Dados mockados de recorrências
   const mockRecurrences = useMemo(() => [
@@ -314,9 +317,19 @@ export const RecurrencesTab: FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Header com Sub-Menu */}
       <div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: themeColors.text, margin: '0 0 1.5rem 0' }}>
-          Recorrências e Compromissos
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: themeColors.text, margin: 0 }}>
+            Recorrências e Compromissos
+          </h2>
+          <Button
+            variant="primary"
+            onClick={() => setIsRecurrenceModalOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
+          >
+            <Plus style={{ width: '1rem', height: '1rem' }} />
+            Nova Recorrência
+          </Button>
+        </div>
         
         {/* Sub-Menu (Pills) */}
         <div
@@ -866,6 +879,17 @@ export const RecurrencesTab: FC = () => {
           }
         }
       `}</style>
+
+      {/* Modal de Nova Recorrência */}
+      <CreateRecurrenceModal
+        isOpen={isRecurrenceModalOpen}
+        onClose={() => setIsRecurrenceModalOpen(false)}
+        onSuccess={() => {
+          setIsRecurrenceModalOpen(false);
+          // Recarregar dados se necessário
+          // Por enquanto, os dados são mockados, então apenas fechamos o modal
+        }}
+      />
     </div>
   );
 };

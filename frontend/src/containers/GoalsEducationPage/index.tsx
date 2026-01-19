@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -16,12 +16,9 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getTheme } from '../../styles/theme';
-import {
-  MOCK_SKILLS,
-  getTotalHoursStudied,
-  type Skill,
-  type SkillCategory,
-} from '../../mocks/database';
+import type { Skill, SkillCategory } from '../../mocks/database';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * GoalsEducationPage - Página de Habilidades Educacionais
@@ -31,9 +28,41 @@ import {
 export const GoalsEducationPage: FC = () => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
+  const { user } = useAuth();
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Buscar habilidades do Supabase
+  useEffect(() => {
+    if (user) {
+      fetchSkills();
+    }
+  }, [user]);
+
+  const fetchSkills = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Por enquanto, deixar vazio pois pode não haver tabela de habilidades
+      // Se houver, buscar assim:
+      // const { data } = await supabase
+      //   .from('skills')
+      //   .select('*')
+      //   .eq('user_id', user.id);
+      // setSkills(data || []);
+      setSkills([]);
+    } catch (err) {
+      console.error('Erro ao carregar habilidades:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calcular total de horas estudadas
-  const totalHours = useMemo(() => getTotalHoursStudied(), []);
+  const totalHours = useMemo(() => {
+    return skills.reduce((total, skill) => total + (skill.hoursStudied || 0), 0);
+  }, [skills]);
 
   // Obter ícone da categoria
   const getCategoryIcon = (category: SkillCategory) => {
@@ -137,7 +166,16 @@ export const GoalsEducationPage: FC = () => {
           gap: '1.5rem',
         }}
       >
-        {MOCK_SKILLS.map(skill => {
+        {loading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: themeColors.textSecondary }}>
+            Carregando habilidades...
+          </div>
+        ) : skills.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: themeColors.textSecondary }}>
+            Nenhuma habilidade cadastrada
+          </div>
+        ) : (
+          skills.map(skill => {
           const CategoryIcon = getCategoryIcon(skill.category);
           const categoryColor = getCategoryColor(skill.category);
           const levelGradient = getLevelGradient(skill.level);
@@ -308,7 +346,8 @@ export const GoalsEducationPage: FC = () => {
               </Button>
             </Card>
           );
-        })}
+          })
+        )}
       </div>
 
       {/* CSS para animação de shimmer */}

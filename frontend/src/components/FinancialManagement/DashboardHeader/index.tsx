@@ -1,7 +1,10 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import styled from 'styled-components';
 import { FiCalendar } from 'react-icons/fi';
+import { Plus } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { CreateTransactionModal } from '../../modals/CreateTransactionModal';
+import { Button } from '../../ui/Button';
 
 const HeaderContainer = styled.div`
   display: flex;
@@ -85,6 +88,7 @@ export const DashboardHeader: FC<DashboardHeaderProps> = ({
   onMonthChange 
 }) => {
   const { user } = useAuth();
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   
   const currentDate = new Date();
   const month = selectedMonth ?? currentDate.getMonth() + 1;
@@ -121,30 +125,52 @@ export const DashboardHeader: FC<DashboardHeaderProps> = ({
   };
 
   return (
-    <HeaderContainer>
-      <WelcomeText>
-        Bem vindo a sua vida financeira {user?.name || 'Usuário'}
-      </WelcomeText>
-      <MonthSelectorWrapper>
-        <CalendarIcon />
-        <Select
-          value={month}
-          onChange={handleMonthChange}
-        >
-          {months.map((monthName, index) => (
-            <option key={index + 1} value={index + 1}>
-              {monthName}
-            </option>
-          ))}
-        </Select>
-        <Select
-          value={year}
-          onChange={handleYearChange}
-        >
-          {generateYearOptions()}
-        </Select>
-      </MonthSelectorWrapper>
-    </HeaderContainer>
+    <>
+      <HeaderContainer>
+        <WelcomeText>
+          Bem vindo a sua vida financeira {user?.name || 'Usuário'}
+        </WelcomeText>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <MonthSelectorWrapper>
+            <CalendarIcon />
+            <Select
+              value={month}
+              onChange={handleMonthChange}
+            >
+              {months.map((monthName, index) => (
+                <option key={index + 1} value={index + 1}>
+                  {monthName}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={year}
+              onChange={handleYearChange}
+            >
+              {generateYearOptions()}
+            </Select>
+          </MonthSelectorWrapper>
+          <Button
+            variant="primary"
+            onClick={() => setIsTransactionModalOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
+          >
+            <Plus style={{ width: '1rem', height: '1rem' }} />
+            Nova Transação
+          </Button>
+        </div>
+      </HeaderContainer>
+
+      <CreateTransactionModal
+        isOpen={isTransactionModalOpen}
+        onClose={() => setIsTransactionModalOpen(false)}
+        onSuccess={() => {
+          setIsTransactionModalOpen(false);
+          // Recarregar dados se necessário
+          onMonthChange?.(month, year);
+        }}
+      />
+    </>
   );
 };
 

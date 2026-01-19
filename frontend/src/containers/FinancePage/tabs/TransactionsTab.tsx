@@ -1,10 +1,11 @@
-import { FC, useState, useMemo } from 'react';
+import { FC, useState, useMemo, useEffect } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { getTheme } from '../../../styles/theme';
 import { Card } from '../../../components/ui/Card';
 import { Input } from '../../../components/ui/Input';
 import { Search, ArrowUpCircle, ArrowDownCircle, Repeat } from 'lucide-react';
-import { MOCK_TRANSACTIONS, MOCK_ACCOUNTS, MOCK_CATEGORIES } from '../../../mocks/database';
+import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../context/AuthContext';
 
 type FilterType = 'all' | 'income' | 'expense' | 'recurring';
 
@@ -15,12 +16,60 @@ type FilterType = 'all' | 'income' | 'expense' | 'recurring';
 export const TransactionsTab: FC = () => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
+  const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Estados para dados do Supabase
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Buscar dados do Supabase
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  const fetchData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Buscar transações
+      const { data: transactionsData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      // Buscar categorias
+      const { data: categoriesData } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('user_id', user.id);
+
+      // Buscar contas
+      const { data: accountsData } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('user_id', user.id);
+
+      setTransactions(transactionsData || []);
+      setCategories(categoriesData || []);
+      setAccounts(accountsData || []);
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filtrar transações
   const filteredTransactions = useMemo(() => {
-    let filtered = [...MOCK_TRANSACTIONS];
+    let filtered = [...transactions];
 
     // Aplicar filtro de tipo
     if (activeFilter === 'income') {
@@ -28,21 +77,26 @@ export const TransactionsTab: FC = () => {
     } else if (activeFilter === 'expense') {
       filtered = filtered.filter(t => t.type === 'expense');
     } else if (activeFilter === 'recurring') {
-      filtered = filtered.filter(t => t.paymentCondition === 'recurring');
+      // Filtrar por recorrências (pode ser baseado em outro campo)
+      filtered = filtered.filter(t => t.is_recurring);
     }
 
     // Aplicar busca
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(t =>
-        t.description.toLowerCase().includes(query) ||
-        (t.categoryId && MOCK_CATEGORIES.find(c => c.id === t.categoryId)?.name.toLowerCase().includes(query))
+        t.description?.toLowerCase().includes(query) ||
+        (t.category_id && categories.find(c => c.id === t.category_id)?.name?.toLowerCase().includes(query))
       );
     }
 
     // Ordenar por data (mais recente primeiro)
-    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [activeFilter, searchQuery]);
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.date || 0).getTime();
+      const dateB = new Date(b.date || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [activeFilter, searchQuery, transactions, categories]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -61,12 +115,12 @@ export const TransactionsTab: FC = () => {
 
   const getCategoryName = (categoryId?: string) => {
     if (!categoryId) return 'Sem categoria';
-    return MOCK_CATEGORIES.find(c => c.id === categoryId)?.name || 'Sem categoria';
+    return categories.find(c => c.id === categoryId)?.name || 'Sem categoria';
   };
 
   const getAccountName = (accountId?: string) => {
     if (!accountId) return '-';
-    return MOCK_ACCOUNTS.find(a => a.id === accountId)?.name || '-';
+    return accounts.find(a => a.id === accountId)?.name || '-';
   };
 
   const filters = [
@@ -78,16 +132,8 @@ export const TransactionsTab: FC = () => {
   // Função para obter cor da categoria
   const getCategoryColor = (categoryId?: string) => {
     if (!categoryId) return themeColors.neon.purple;
-    const category = MOCK_CATEGORIES.find(c => c.id === categoryId);
-    const colorMap: Record<string, string> = {
-      'alimentacao': themeColors.neon.orange,
-      'transporte': themeColors.neon.blue,
-      'saude': themeColors.status.error,
-      'educacao': themeColors.neon.purple,
-      'lazer': themeColors.neon.pink,
-      'moradia': themeColors.neon.cyan,
-    };
-    return colorMap[categoryId] || themeColors.neon.purple;
+    const category = categories.find(c => c.id === categoryId);
+    return category?.color || themeColors.neon.purple;
   };
 
   return (
@@ -258,7 +304,20 @@ export const TransactionsTab: FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredTransactions.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    style={{
+                      padding: '3rem',
+                      textAlign: 'center',
+                      color: themeColors.textSecondary,
+                    }}
+                  >
+                    Carregando transações...
+                  </td>
+                </tr>
+              ) : filteredTransactions.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
@@ -274,7 +333,7 @@ export const TransactionsTab: FC = () => {
               ) : (
                 filteredTransactions.map((transaction) => {
                   const isIncome = transaction.type === 'income';
-                  const isRecurring = transaction.paymentCondition === 'recurring';
+                  const isRecurring = transaction.is_recurring || false;
 
                   return (
                     <tr
@@ -302,7 +361,7 @@ export const TransactionsTab: FC = () => {
                           color: themeColors.textSecondary,
                         }}
                       >
-                        {formatDate(transaction.date)}
+                        {formatDate(transaction.date || '')}
                       </td>
                       <td
                         style={{
@@ -331,13 +390,13 @@ export const TransactionsTab: FC = () => {
                             alignItems: 'center',
                             padding: '0.375rem 0.875rem',
                             borderRadius: '9999px',
-                            backgroundColor: `${getCategoryColor(transaction.categoryId)}20`,
-                            color: getCategoryColor(transaction.categoryId),
+                            backgroundColor: `${getCategoryColor(transaction.category_id)}20`,
+                            color: getCategoryColor(transaction.category_id),
                             fontSize: '0.75rem',
                             fontWeight: '600',
                           }}
                         >
-                          {getCategoryName(transaction.categoryId)}
+                          {getCategoryName(transaction.category_id)}
                         </span>
                       </td>
                       <td
@@ -347,7 +406,7 @@ export const TransactionsTab: FC = () => {
                           color: themeColors.textSecondary,
                         }}
                       >
-                        {getAccountName(transaction.accountId)}
+                        {getAccountName(transaction.account_id)}
                       </td>
                       <td
                         style={{

@@ -13,10 +13,9 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getTheme } from '../../styles/theme';
-import {
-  MOCK_BOOKS,
-  type Book,
-} from '../../mocks/database';
+import type { Book } from '../../mocks/database';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * GoalsReadingPage - Página de Biblioteca de Livros
@@ -26,10 +25,39 @@ import {
 export const GoalsReadingPage: FC = () => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
-  const [books, setBooks] = useState<Book[]>(MOCK_BOOKS);
+  const { user } = useAuth();
+  const [books, setBooks] = useState<Book[]>([]);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pagesInput, setPagesInput] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  // Buscar livros do Supabase
+  useEffect(() => {
+    if (user) {
+      fetchBooks();
+    }
+  }, [user]);
+
+  const fetchBooks = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Por enquanto, deixar vazio pois pode não haver tabela de livros
+      // Se houver, buscar assim:
+      // const { data } = await supabase
+      //   .from('books')
+      //   .select('*')
+      //   .eq('user_id', user.id);
+      // setBooks(data || []);
+      setBooks([]);
+    } catch (err) {
+      console.error('Erro ao carregar livros:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   // Obter cor do placeholder baseado no título

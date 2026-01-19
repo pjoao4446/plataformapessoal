@@ -16,40 +16,66 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getTheme } from '../../styles/theme';
-import {
-  MOCK_HABITS,
-  MOCK_DAILY_LOGS,
-  getTodayLogs,
-  getLogsByHabitId,
-  getTodayDateString,
-  type Habit,
-  type HabitCategory,
-  type DailyLog,
-} from '../../mocks/database';
+import type { Habit, HabitCategory, DailyLog } from '../../mocks/database';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * TasksPage - Página de Gestão de Hábitos e Atividades
  * Interface gamificada com score diário e tracking de consistência
  * Design System: VertexGuard Premium Dark/Light
  */
+const getTodayDateString = () => {
+  return new Date().toISOString().split('T')[0];
+};
+
 export const TasksPage: FC = () => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
-  const [logs, setLogs] = useState<DailyLog[]>(MOCK_DAILY_LOGS);
+  const { user } = useAuth();
+  const [logs, setLogs] = useState<DailyLog[]>([]);
+  const [habits, setHabits] = useState<Habit[]>([]);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
   const [completedHabits, setCompletedHabits] = useState<Set<string>>(
     new Set(logs.filter(log => log.date === getTodayDateString() && log.completed).map(log => log.habitId))
   );
   const [glowingHabits, setGlowingHabits] = useState<Set<string>>(new Set());
 
+  // Buscar dados do Supabase
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  const fetchData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Por enquanto, deixar vazio pois pode não haver tabelas de hábitos
+      // Se houver, buscar assim:
+      // const { data: habitsData } = await supabase.from('habits').select('*').eq('user_id', user.id);
+      // const { data: logsData } = await supabase.from('daily_logs').select('*').eq('user_id', user.id);
+      setHabits([]);
+      setLogs([]);
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Obter logs de hoje
   const todayLogs = useMemo(() => {
-    return logs.filter(log => log.date === getTodayDateString());
+    const today = getTodayDateString();
+    return logs.filter(log => log.date === today);
   }, [logs]);
 
   // Calcular Score do Dia
   const dailyScore = useMemo(() => {
-    const todayHabits = MOCK_HABITS.filter(h => h.frequency === 'daily' || 
+    const todayHabits = habits.filter(h => h.frequency === 'daily' || 
       (h.frequency === 'weekly' && todayLogs.some(log => log.habitId === h.id && log.completed)));
     
     if (todayHabits.length === 0) return 100;
@@ -115,7 +141,7 @@ export const TasksPage: FC = () => {
 
   // Heatmap de consistência (últimos 30 dias)
   const getHeatmapData = (habitId: string): boolean[] => {
-    const habitLogs = getLogsByHabitId(habitId);
+    const habitLogs = logs.filter(log => log.habitId === habitId);
     const heatmap: boolean[] = [];
     
     for (let i = 29; i >= 0; i--) {
@@ -240,7 +266,7 @@ export const TasksPage: FC = () => {
       business: [],
     };
     
-    MOCK_HABITS.forEach(habit => {
+    habits.forEach(habit => {
       grouped[habit.category].push(habit);
     });
     

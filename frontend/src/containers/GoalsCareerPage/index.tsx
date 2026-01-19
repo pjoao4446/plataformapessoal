@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { Card } from '../../components/ui/Card';
 import { PageContainer } from '../../components/layout/PageContainer';
@@ -12,9 +12,8 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getTheme } from '../../styles/theme';
-import {
-  MOCK_CAREER,
-} from '../../mocks/database';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * GoalsCareerPage - Página de Metas Profissionais e Carreira
@@ -24,6 +23,37 @@ import {
 export const GoalsCareerPage: FC = () => {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
+  const { user } = useAuth();
+  const [career, setCareer] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Buscar dados de carreira do Supabase
+  useEffect(() => {
+    if (user) {
+      fetchCareer();
+    }
+  }, [user]);
+
+  const fetchCareer = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Por enquanto, deixar vazio pois pode não haver tabela de carreira
+      // Se houver, buscar assim:
+      // const { data } = await supabase
+      //   .from('career_goals')
+      //   .select('*')
+      //   .eq('user_id', user.id)
+      //   .single();
+      // setCareer(data);
+      setCareer(null);
+    } catch (err) {
+      console.error('Erro ao carregar dados de carreira:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Formatar data
   const formatDate = (dateString: string) => {
@@ -36,10 +66,11 @@ export const GoalsCareerPage: FC = () => {
 
   // Ordenar feedbacks por data (mais recentes primeiro)
   const sortedFeedbacks = useMemo(() => {
-    return [...MOCK_CAREER.feedbacks].sort((a, b) => {
+    if (!career || !career.feedbacks) return [];
+    return [...career.feedbacks].sort((a: any, b: any) => {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
-  }, []);
+  }, [career]);
 
   return (
     <PageContainer>
@@ -66,12 +97,12 @@ export const GoalsCareerPage: FC = () => {
                   Cargo Atual
                 </p>
                 <p style={{ fontSize: '1.25rem', fontWeight: 'bold', color: themeColors.text, margin: 0 }}>
-                  {MOCK_CAREER.role}
+                  {career?.role || 'Não especificado'}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
                   <Building2 style={{ width: '0.875rem', height: '0.875rem', color: themeColors.textMuted }} />
                   <span style={{ fontSize: '0.875rem', color: themeColors.textSecondary }}>
-                    {MOCK_CAREER.company}
+                    {career?.company || 'Não especificado'}
                   </span>
                 </div>
               </div>
@@ -91,7 +122,7 @@ export const GoalsCareerPage: FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Award style={{ width: '1rem', height: '1rem', color: themeColors.neon.emerald }} />
                   <p style={{ fontSize: '1.25rem', fontWeight: 'bold', color: themeColors.neon.emerald, margin: 0 }}>
-                    {MOCK_CAREER.nextLevel}
+                    {career?.nextLevel || 'Não especificado'}
                   </p>
                 </div>
               </div>
@@ -119,7 +150,23 @@ export const GoalsCareerPage: FC = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {MOCK_CAREER.goals.map(goal => {
+            {loading ? (
+              <Card padding="lg">
+                <div style={{ textAlign: 'center', padding: '2rem', color: themeColors.textSecondary }}>
+                  Carregando metas de carreira...
+                </div>
+              </Card>
+            ) : !career || !career.goals || career.goals.length === 0 ? (
+              <Card padding="lg">
+                <div style={{ textAlign: 'center', padding: '2rem', color: themeColors.textSecondary }}>
+                  <Target style={{ width: '3rem', height: '3rem', color: themeColors.textMuted, margin: '0 auto 1rem' }} />
+                  <p style={{ margin: 0 }}>
+                    Nenhuma meta de carreira cadastrada
+                  </p>
+                </div>
+              </Card>
+            ) : (
+              career.goals.map((goal: any) => {
               const deadlineDate = new Date(goal.deadline);
               const daysUntilDeadline = Math.ceil((deadlineDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
@@ -179,7 +226,8 @@ export const GoalsCareerPage: FC = () => {
                   </div>
                 </Card>
               );
-            })}
+              })
+            )}
           </div>
         </div>
 
