@@ -21,6 +21,7 @@ import { GoalsHealthPage } from '../containers/GoalsHealthPage';
 // Operational Pages
 import { FinancePage } from '../containers/FinancePage';
 import { TasksPage } from '../containers/TasksPage';
+import { ProfessionalPage } from '../containers/ProfessionalPage';
 
 // Legacy Pages (mantidas para compatibilidade)
 import { TelaInicio } from '../containers/TelaInicio';
@@ -85,6 +86,7 @@ export function AppRoutes() {
                 {/* Operational Routes */}
                 <Route path="/finance" element={<FinancePage />} />
                 <Route path="/tasks" element={<TasksPage />} />
+                <Route path="/professional" element={<ProfessionalPage />} />
                 
                 {/* Legacy Routes - Mantidas para compatibilidade */}
                 <Route path="/inicio" element={<TelaInicio />} />

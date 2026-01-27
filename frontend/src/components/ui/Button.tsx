@@ -33,7 +33,7 @@ export function Button({
 
   const variantStyles: Record<string, React.CSSProperties> = {
     primary: {
-      backgroundColor: themeColors.neon.purple,
+      background: `linear-gradient(135deg, ${themeColors.neon.purple}, ${themeColors.neon.cyan})`,
       color: 'white',
       border: 'none',
     },
@@ -66,11 +66,12 @@ export function Button({
     fontWeight: '600',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.5 : 1,
-    transition: 'all 0.2s',
+    transition: 'all 0.2s ease',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '0.5rem',
+    transform: 'scale(1)',
   };
 
   return (
@@ -85,20 +86,22 @@ export function Button({
       )}
       onMouseEnter={!disabled ? (e) => {
         if (variant === 'primary') {
-          e.currentTarget.style.backgroundColor = theme === 'dark' ? '#9333EA' : '#7C3AED';
-          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.transform = 'scale(1.05)';
+          e.currentTarget.style.boxShadow = `0 10px 25px -5px ${themeColors.neon.purple}40`;
         } else if (variant === 'secondary' || variant === 'outline') {
           e.currentTarget.style.borderColor = themeColors.neon.purple;
           e.currentTarget.style.color = themeColors.neon.purple;
+          e.currentTarget.style.transform = 'scale(1.02)';
         }
       } : undefined}
       onMouseLeave={!disabled ? (e) => {
         if (variant === 'primary') {
-          e.currentTarget.style.backgroundColor = themeColors.neon.purple;
-          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = 'none';
         } else if (variant === 'secondary' || variant === 'outline') {
           e.currentTarget.style.borderColor = variantStyles[variant].border as string;
           e.currentTarget.style.color = variantStyles[variant].color as string;
+          e.currentTarget.style.transform = 'scale(1)';
         }
       } : undefined}
     >

@@ -198,14 +198,6 @@ export const CategoriesTab: FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: themeColors.text, margin: '0 0 0.5rem 0' }}>
-            Gestão de Orçamento por Categoria
-          </h2>
-          <p style={{ fontSize: '0.875rem', color: themeColors.textSecondary, margin: 0 }}>
-            Monitore seus gastos e defina limites para cada categoria
-          </p>
-        </div>
         <Button
           variant="primary"
           onClick={handleNewCategory}
@@ -215,6 +207,55 @@ export const CategoriesTab: FC = () => {
           Nova Categoria
         </Button>
       </div>
+
+      {/* Resumo Geral */}
+      {expenseCategories.length > 0 && (
+        <Card padding="lg">
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: themeColors.text, marginBottom: '1.5rem', margin: 0 }}>
+            Resumo do Orçamento
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+            <div>
+              <p style={{ fontSize: '0.875rem', color: themeColors.textSecondary, margin: '0 0 0.5rem 0' }}>
+                Total Orçado
+              </p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: themeColors.text, margin: 0 }}>
+                {formatCurrency(
+                  expenseCategories.reduce((sum, cat) => sum + (cat.budget_limit || 0), 0)
+                )}
+              </p>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.875rem', color: themeColors.textSecondary, margin: '0 0 0.5rem 0' }}>
+                Total Gasto
+              </p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: themeColors.text, margin: 0 }}>
+                {formatCurrency(
+                  expenseCategories.reduce((sum, cat) => sum + (categorySpending[cat.id] || 0), 0)
+                )}
+              </p>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.875rem', color: themeColors.textSecondary, margin: '0 0 0.5rem 0' }}>
+                Disponível
+              </p>
+              <p
+                style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold',
+                  color: themeColors.neon.emerald,
+                  margin: 0,
+                }}
+              >
+                {formatCurrency(
+                  expenseCategories.reduce((sum, cat) => sum + (cat.budget_limit || 0), 0) -
+                  expenseCategories.reduce((sum, cat) => sum + (categorySpending[cat.id] || 0), 0)
+                )}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Grid de Categorias */}
       {expenseCategories.length === 0 ? (
@@ -487,55 +528,6 @@ export const CategoriesTab: FC = () => {
             );
           })}
         </div>
-      )}
-
-      {/* Resumo Geral */}
-      {expenseCategories.length > 0 && (
-        <Card padding="lg">
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: themeColors.text, marginBottom: '1.5rem', margin: 0 }}>
-            Resumo do Orçamento
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-            <div>
-              <p style={{ fontSize: '0.875rem', color: themeColors.textSecondary, margin: '0 0 0.5rem 0' }}>
-                Total Orçado
-              </p>
-              <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: themeColors.text, margin: 0 }}>
-                {formatCurrency(
-                  expenseCategories.reduce((sum, cat) => sum + (cat.budget_limit || 0), 0)
-                )}
-              </p>
-            </div>
-            <div>
-              <p style={{ fontSize: '0.875rem', color: themeColors.textSecondary, margin: '0 0 0.5rem 0' }}>
-                Total Gasto
-              </p>
-              <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: themeColors.text, margin: 0 }}>
-                {formatCurrency(
-                  expenseCategories.reduce((sum, cat) => sum + (categorySpending[cat.id] || 0), 0)
-                )}
-              </p>
-            </div>
-            <div>
-              <p style={{ fontSize: '0.875rem', color: themeColors.textSecondary, margin: '0 0 0.5rem 0' }}>
-                Disponível
-              </p>
-              <p
-                style={{
-                  fontSize: '1.5rem',
-                  fontWeight: 'bold',
-                  color: themeColors.neon.emerald,
-                  margin: 0,
-                }}
-              >
-                {formatCurrency(
-                  expenseCategories.reduce((sum, cat) => sum + (cat.budget_limit || 0), 0) -
-                  expenseCategories.reduce((sum, cat) => sum + (categorySpending[cat.id] || 0), 0)
-                )}
-              </p>
-            </div>
-          </div>
-        </Card>
       )}
 
       {/* Modal de Categoria */}

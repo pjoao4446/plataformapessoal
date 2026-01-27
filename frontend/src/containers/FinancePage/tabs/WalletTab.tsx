@@ -44,6 +44,8 @@ export const WalletTab: FC<WalletTabProps> = ({ cards, setCards }) => {
   // Estados dos modais
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [accountToEdit, setAccountToEdit] = useState<Account | null>(null);
+  const [cardToEdit, setCardToEdit] = useState<CreditCard | null>(null);
   
   // Função para buscar contas do Supabase
   const fetchAccounts = async () => {
@@ -201,10 +203,17 @@ export const WalletTab: FC<WalletTabProps> = ({ cards, setCards }) => {
   };
 
   const handleOpenAddAccount = () => {
+    setAccountToEdit(null);
+    setIsAccountModalOpen(true);
+  };
+
+  const handleEditAccount = (account: Account) => {
+    setAccountToEdit(account);
     setIsAccountModalOpen(true);
   };
 
   const handleAccountSuccess = () => {
+    setAccountToEdit(null);
     fetchAccounts();
   };
 
@@ -226,10 +235,17 @@ export const WalletTab: FC<WalletTabProps> = ({ cards, setCards }) => {
   };
 
   const handleOpenAddCard = () => {
+    setCardToEdit(null);
+    setIsCardModalOpen(true);
+  };
+
+  const handleEditCard = (card: CreditCard) => {
+    setCardToEdit(card);
     setIsCardModalOpen(true);
   };
 
   const handleCardSuccess = () => {
+    setCardToEdit(null);
     fetchCards();
   };
 
@@ -345,29 +361,43 @@ export const WalletTab: FC<WalletTabProps> = ({ cards, setCards }) => {
                     zIndex: 10,
                   }}
                 >
-                  {/* Botão de editar temporariamente desabilitado */}
-                  {/* <button
+                  <button
                     type="button"
-                    onClick={() => {}}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditAccount(account);
+                    }}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.375rem',
                       border: `1px solid ${themeColors.border}`,
                       backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
                       color: themeColors.textSecondary,
-                      cursor: 'not-allowed',
+                      cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       transition: 'all 0.2s',
-                      opacity: 0.5,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = themeColors.neon.purple;
+                      e.currentTarget.style.color = themeColors.neon.purple;
+                      e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(168, 85, 247, 0.1)' : 'rgba(168, 85, 247, 0.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = themeColors.border;
+                      e.currentTarget.style.color = themeColors.textSecondary;
+                      e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)';
                     }}
                   >
                     <Edit style={{ width: '0.875rem', height: '0.875rem' }} />
-                  </button> */}
+                  </button>
                   <button
                     type="button"
-                    onClick={() => handleDeleteAccount(account.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteAccount(account.id);
+                    }}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.375rem',
@@ -518,27 +548,37 @@ export const WalletTab: FC<WalletTabProps> = ({ cards, setCards }) => {
                     zIndex: 10,
                   }}
                 >
-                  {/* Botão de editar temporariamente desabilitado */}
-                  {/* <button
+                  <button
                     type="button"
-                    onClick={() => {}}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditCard(card);
+                    }}
                     style={{
                       padding: '0.5rem',
                       borderRadius: '0.5rem',
                       border: '1px solid rgba(255, 255, 255, 0.3)',
                       backgroundColor: 'rgba(255, 255, 255, 0.2)',
                       color: 'white',
-                      cursor: 'not-allowed',
+                      cursor: 'pointer',
                       backdropFilter: 'blur(10px)',
                       transition: 'all 0.2s',
-                      opacity: 0.5,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(168, 85, 247, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
                     }}
                   >
                     <Edit style={{ width: '1rem', height: '1rem' }} />
-                  </button> */}
+                  </button>
                   <button
                     type="button"
-                    onClick={() => handleDeleteCard(card.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCard(card.id);
+                    }}
                     style={{
                       padding: '0.5rem',
                       borderRadius: '0.5rem',
@@ -568,17 +608,25 @@ export const WalletTab: FC<WalletTabProps> = ({ cards, setCards }) => {
         </div>
       </div>
 
-      {/* Modais de Criação */}
+      {/* Modais de Criação/Edição */}
       <CreateAccountModal
         isOpen={isAccountModalOpen}
-        onClose={() => setIsAccountModalOpen(false)}
+        onClose={() => {
+          setIsAccountModalOpen(false);
+          setAccountToEdit(null);
+        }}
         onSuccess={handleAccountSuccess}
+        accountToEdit={accountToEdit}
       />
 
       <CreateCreditCardModal
         isOpen={isCardModalOpen}
-        onClose={() => setIsCardModalOpen(false)}
+        onClose={() => {
+          setIsCardModalOpen(false);
+          setCardToEdit(null);
+        }}
         onSuccess={handleCardSuccess}
+        cardToEdit={cardToEdit}
       />
 
       {/* CSS para grid responsivo de cartões */}

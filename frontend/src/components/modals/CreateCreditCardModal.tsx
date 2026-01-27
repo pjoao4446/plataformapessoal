@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BaseModal } from '../ui/BaseModal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
@@ -8,11 +8,13 @@ import { getTheme } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { Loader2 } from 'lucide-react';
+import type { CreditCard } from '../../mocks/database';
 
 export interface CreateCreditCardModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  cardToEdit?: CreditCard | null;
 }
 
 const CARD_COLORS = [
@@ -21,6 +23,8 @@ const CARD_COLORS = [
   { value: '#820AD1', label: 'Roxo', color: '#820AD1' },
   { value: '#000000', label: 'Preto', color: '#000000' },
   { value: '#FF7A00', label: 'Laranja', color: '#FF7A00' },
+  { value: '#FFD700', label: 'Amarelo', color: '#FFD700' },
+  { value: '#DC2626', label: 'Vermelho-Preto', color: '#DC2626' },
 ];
 
 // Gerar array de dias (1 a 31)
@@ -34,6 +38,7 @@ export function CreateCreditCardModal({
   isOpen,
   onClose,
   onSuccess,
+  cardToEdit,
 }: CreateCreditCardModalProps) {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
@@ -48,6 +53,28 @@ export function CreateCreditCardModal({
     dueDay: 15,
     color: '#820AD1',
   });
+
+  // Preencher formulário quando estiver editando
+  useEffect(() => {
+    if (cardToEdit && isOpen) {
+      setFormData({
+        name: cardToEdit.name || '',
+        limit: cardToEdit.limit?.toString() || '0',
+        closingDay: cardToEdit.closingDay || 10,
+        dueDay: cardToEdit.dueDay || 15,
+        color: cardToEdit.color || '#820AD1',
+      });
+    } else if (!cardToEdit && isOpen) {
+      // Limpar formulário quando criar novo
+      setFormData({
+        name: '',
+        limit: '',
+        closingDay: 10,
+        dueDay: 15,
+        color: '#820AD1',
+      });
+    }
+  }, [cardToEdit, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,22 +98,41 @@ export function CreateCreditCardModal({
     setLoading(true);
 
     try {
-      const { data, error: insertError } = await supabase
-        .from('credit_cards')
-        .insert([
-          {
+      if (cardToEdit) {
+        // Atualizar cartão existente
+        const { error: updateError } = await supabase
+          .from('credit_cards')
+          .update({
             name: formData.name.trim(),
-            limit_amount: parseFloat(formData.limit), // Corrigido: limit -> limit_amount
+            limit_amount: parseFloat(formData.limit),
             closing_day: formData.closingDay,
             due_day: formData.dueDay,
             color: formData.color,
-            user_id: user.id,
-          },
-        ])
-        .select('*');
+          })
+          .eq('id', cardToEdit.id);
 
-      if (insertError) {
-        throw insertError;
+        if (updateError) {
+          throw updateError;
+        }
+      } else {
+        // Criar novo cartão
+        const { data, error: insertError } = await supabase
+          .from('credit_cards')
+          .insert([
+            {
+              name: formData.name.trim(),
+              limit_amount: parseFloat(formData.limit),
+              closing_day: formData.closingDay,
+              due_day: formData.dueDay,
+              color: formData.color,
+              user_id: user.id,
+            },
+          ])
+          .select('*');
+
+        if (insertError) {
+          throw insertError;
+        }
       }
 
       // Limpar formulário
@@ -126,7 +172,7 @@ export function CreateCreditCardModal({
     <BaseModal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Novo Cartão de Crédito"
+      title={cardToEdit ? "Editar Cartão de Crédito" : "Novo Cartão de Crédito"}
       size="md"
       footer={
         <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>

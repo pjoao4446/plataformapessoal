@@ -51,7 +51,72 @@ export const GoalsEducationPage: FC = () => {
       //   .select('*')
       //   .eq('user_id', user.id);
       // setSkills(data || []);
-      setSkills([]);
+      
+      // Dados mockados para demonstração
+      const mockSkills: Skill[] = [
+        {
+          id: '1',
+          name: 'Inglês',
+          title: 'Inglês',
+          category: 'language',
+          level: 75,
+          maxLevel: 100,
+          hoursStudied: 320,
+          currentLevelLabel: 'Avançado',
+          targetLevel: 90,
+          nextMilestone: 'Fluência conversacional em negócios',
+        },
+        {
+          id: '2',
+          name: 'React & TypeScript',
+          title: 'React & TypeScript',
+          category: 'tech',
+          level: 85,
+          maxLevel: 100,
+          hoursStudied: 450,
+          currentLevelLabel: 'Expert',
+          targetLevel: 95,
+          nextMilestone: 'Dominar padrões avançados e otimizações',
+        },
+        {
+          id: '3',
+          name: 'Comunicação Eficaz',
+          title: 'Comunicação Eficaz',
+          category: 'soft_skill',
+          level: 60,
+          maxLevel: 100,
+          hoursStudied: 120,
+          currentLevelLabel: 'Intermediário',
+          targetLevel: 80,
+          nextMilestone: 'Apresentações públicas profissionais',
+        },
+        {
+          id: '4',
+          name: 'AWS Cloud Architecture',
+          title: 'AWS Cloud Architecture',
+          category: 'tech',
+          level: 45,
+          maxLevel: 100,
+          hoursStudied: 180,
+          currentLevelLabel: 'Intermediário',
+          targetLevel: 70,
+          nextMilestone: 'Certificação AWS Solutions Architect',
+        },
+        {
+          id: '5',
+          name: 'Gestão de Projetos',
+          title: 'Gestão de Projetos',
+          category: 'general',
+          level: 55,
+          maxLevel: 100,
+          hoursStudied: 95,
+          currentLevelLabel: 'Intermediário',
+          targetLevel: 75,
+          nextMilestone: 'Certificação PMP',
+        },
+      ];
+      
+      setSkills(mockSkills);
     } catch (err) {
       console.error('Erro ao carregar habilidades:', err);
     } finally {

@@ -48,7 +48,40 @@ export const GoalsHealthPage: FC = () => {
       //   .select('*')
       //   .eq('user_id', user.id);
       // setWorkouts(data || []);
-      setWorkouts([]);
+      
+      // Dados mockados para demonstração
+      const mockWorkouts: any[] = [
+        {
+          id: '1',
+          type: 'gym',
+          currentWeek: 4,
+          weeklyGoal: 5,
+          streak: 12,
+          totalStats: 85,
+          records: [
+            { label: 'Supino Reto', value: '120 kg' },
+            { label: 'Agachamento', value: '180 kg' },
+            { label: 'Levantamento Terra', value: '200 kg' },
+            { label: 'Desenvolvimento', value: '80 kg' },
+          ],
+        },
+        {
+          id: '2',
+          type: 'run',
+          currentWeek: 18.5,
+          weeklyGoal: 25,
+          streak: 8,
+          totalStats: 420,
+          records: [
+            { label: '5K mais rápido', value: '22:15' },
+            { label: '10K mais rápido', value: '48:30' },
+            { label: 'Meia Maratona', value: '1h 52min' },
+            { label: 'Distância mensal', value: '120 km' },
+          ],
+        },
+      ];
+      
+      setWorkouts(mockWorkouts);
     } catch (err) {
       console.error('Erro ao carregar treinos:', err);
     } finally {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BaseModal } from '../ui/BaseModal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
@@ -8,11 +8,13 @@ import { getTheme } from '../../styles/theme';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { Loader2 } from 'lucide-react';
+import type { Account } from '../../mocks/database';
 
 export interface CreateAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  accountToEdit?: Account | null;
 }
 
 const ACCOUNT_COLORS = [
@@ -31,6 +33,7 @@ export function CreateAccountModal({
   isOpen,
   onClose,
   onSuccess,
+  accountToEdit,
 }: CreateAccountModalProps) {
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
@@ -45,6 +48,28 @@ export function CreateAccountModal({
     balance: '',
     color: '#10B981',
   });
+
+  // Preencher formulário quando estiver editando
+  useEffect(() => {
+    if (accountToEdit && isOpen) {
+      setFormData({
+        name: accountToEdit.name || '',
+        bank: accountToEdit.bank || '',
+        type: accountToEdit.type || 'checking',
+        balance: accountToEdit.balance?.toString() || '0',
+        color: accountToEdit.color || '#10B981',
+      });
+    } else if (!accountToEdit && isOpen) {
+      // Limpar formulário quando criar novo
+      setFormData({
+        name: '',
+        bank: '',
+        type: 'checking',
+        balance: '',
+        color: '#10B981',
+      });
+    }
+  }, [accountToEdit, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,22 +93,41 @@ export function CreateAccountModal({
     setLoading(true);
 
     try {
-      const { data, error: insertError } = await supabase
-        .from('accounts')
-        .insert([
-          {
+      if (accountToEdit) {
+        // Atualizar conta existente
+        const { error: updateError } = await supabase
+          .from('accounts')
+          .update({
             name: formData.name.trim(),
-            bank_name: formData.bank.trim(), // Corrigido: bank -> bank_name
+            bank_name: formData.bank.trim(),
             type: formData.type,
             balance: parseFloat(formData.balance) || 0,
             color: formData.color,
-            user_id: user.id,
-          },
-        ])
-        .select();
+          })
+          .eq('id', accountToEdit.id);
 
-      if (insertError) {
-        throw insertError;
+        if (updateError) {
+          throw updateError;
+        }
+      } else {
+        // Criar nova conta
+        const { data, error: insertError } = await supabase
+          .from('accounts')
+          .insert([
+            {
+              name: formData.name.trim(),
+              bank_name: formData.bank.trim(),
+              type: formData.type,
+              balance: parseFloat(formData.balance) || 0,
+              color: formData.color,
+              user_id: user.id,
+            },
+          ])
+          .select();
+
+        if (insertError) {
+          throw insertError;
+        }
       }
 
       // Limpar formulário
@@ -123,7 +167,7 @@ export function CreateAccountModal({
     <BaseModal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Nova Conta"
+      title={accountToEdit ? "Editar Conta" : "Nova Conta"}
       size="md"
       footer={
         <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>

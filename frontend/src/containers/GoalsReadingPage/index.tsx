@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Modal } from '../../components/ui/Modal';
@@ -51,7 +51,93 @@ export const GoalsReadingPage: FC = () => {
       //   .select('*')
       //   .eq('user_id', user.id);
       // setBooks(data || []);
-      setBooks([]);
+      
+      // Dados mockados para demonstração
+      const mockBooks: Book[] = [
+        {
+          id: '1',
+          title: 'Clean Code',
+          author: 'Robert C. Martin',
+          status: 'reading',
+          pagesRead: 180,
+          totalPages: 464,
+          pages: 464,
+          currentPage: 180,
+        },
+        {
+          id: '2',
+          title: 'Designing Data-Intensive Applications',
+          author: 'Martin Kleppmann',
+          status: 'completed',
+          pagesRead: 580,
+          totalPages: 580,
+          pages: 580,
+          currentPage: 580,
+          rating: 5,
+        },
+        {
+          id: '3',
+          title: 'The Pragmatic Programmer',
+          author: 'Andrew Hunt & David Thomas',
+          status: 'completed',
+          pagesRead: 352,
+          totalPages: 352,
+          pages: 352,
+          currentPage: 352,
+          rating: 5,
+        },
+        {
+          id: '4',
+          title: 'System Design Interview',
+          author: 'Alex Xu',
+          status: 'reading',
+          pagesRead: 95,
+          totalPages: 320,
+          pages: 320,
+          currentPage: 95,
+        },
+        {
+          id: '5',
+          title: 'Atomic Habits',
+          author: 'James Clear',
+          status: 'completed',
+          pagesRead: 320,
+          totalPages: 320,
+          pages: 320,
+          currentPage: 320,
+          rating: 4,
+        },
+        {
+          id: '6',
+          title: 'Domain-Driven Design',
+          author: 'Eric Evans',
+          status: 'wishlist',
+          pagesRead: 0,
+          totalPages: 560,
+          pages: 560,
+        },
+        {
+          id: '7',
+          title: 'Refactoring',
+          author: 'Martin Fowler',
+          status: 'reading',
+          pagesRead: 120,
+          totalPages: 448,
+          pages: 448,
+          currentPage: 120,
+        },
+        {
+          id: '8',
+          title: 'Building Microservices',
+          author: 'Sam Newman',
+          status: 'wishlist',
+          pagesRead: 0,
+          totalPages: 280,
+          pages: 280,
+        },
+      ];
+      
+      setBooks(mockBooks);
     } catch (err) {
       console.error('Erro ao carregar livros:', err);
     } finally {

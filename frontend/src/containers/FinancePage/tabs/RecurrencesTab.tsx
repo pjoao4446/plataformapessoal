@@ -27,81 +27,8 @@ export const RecurrencesTab: FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
 
-  // Dados mockados de recorrências
-  const mockRecurrences = useMemo(() => [
-    {
-      id: '1',
-      type: 'subscription' as const,
-      description: 'Netflix',
-      amount: 45.90,
-      dueDay: 10,
-      status: 'active' as const,
-    },
-    {
-      id: '2',
-      type: 'subscription' as const,
-      description: 'Spotify Premium',
-      amount: 21.90,
-      dueDay: 15,
-      status: 'active' as const,
-    },
-    {
-      id: '3',
-      type: 'subscription' as const,
-      description: 'Academia Smart Fit',
-      amount: 99.90,
-      dueDay: 5,
-      status: 'active' as const,
-    },
-    {
-      id: '4',
-      type: 'subscription' as const,
-      description: 'Aluguel',
-      amount: 1500.00,
-      dueDay: 1,
-      status: 'active' as const,
-    },
-    {
-      id: '5',
-      type: 'installment' as const,
-      description: 'Notebook Dell',
-      amount: 350.00,
-      dueDay: 5,
-      status: 'active' as const,
-      totalInstallments: 12,
-      currentInstallment: 3,
-    },
-    {
-      id: '6',
-      type: 'installment' as const,
-      description: 'iPhone 15 Pro',
-      amount: 450.00,
-      dueDay: 15,
-      status: 'active' as const,
-      totalInstallments: 10,
-      currentInstallment: 2,
-    },
-    {
-      id: '7',
-      type: 'loan' as const,
-      description: 'Empréstimo Consignado',
-      amount: 800.00,
-      dueDay: 1,
-      status: 'active' as const,
-      totalInstallments: 24,
-      currentInstallment: 8,
-    },
-    {
-      id: '8',
-      type: 'loan' as const,
-      description: 'Financiamento Carro',
-      amount: 1200.00,
-      dueDay: 10,
-      status: 'active' as const,
-      totalInstallments: 60,
-      currentInstallment: 12,
-    },
-  ], []);
+  // Dados de recorrências (zerado - sem dados mockados)
+  const mockRecurrences = useMemo(() => [], []);
 
   // Filtrar recorrências conforme viewMode
   const filteredRecurrences = useMemo(() => {
@@ -117,11 +44,12 @@ export const RecurrencesTab: FC = () => {
     }
   }, [mockRecurrences, viewMode]);
 
-  // Renda mensal mockada (para cálculo de %)
-  const mockMonthlyIncome = 8000;
+  // Renda mensal (zerada - sem dados mockados)
+  const mockMonthlyIncome = 0;
 
   // Calcular % da renda comprometida
   const calculateIncomePercentage = (value: number) => {
+    if (mockMonthlyIncome === 0) return '0.0';
     return ((value / mockMonthlyIncome) * 100).toFixed(1);
   };
 

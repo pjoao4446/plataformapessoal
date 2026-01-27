@@ -19,6 +19,7 @@ import { TransactionsTab } from './tabs/TransactionsTab';
 import { RecurrencesTab } from './tabs/RecurrencesTab';
 import { PatrimonyTab } from './tabs/PatrimonyTab';
 import { CategoriesTab } from './tabs/CategoriesTab';
+import { CreateTransactionModal } from '../../components/modals/CreateTransactionModal';
 import type { CreditCard } from '../../mocks/database';
 
 type TabType = 'overview' | 'transactions' | 'wallet' | 'recurrences' | 'patrimony' | 'categories';
@@ -34,6 +35,7 @@ export const FinancePage: FC = () => {
   const { setTitle } = usePageTitleContext();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [cards, setCards] = useState<CreditCard[]>([]);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
 
   const tabs = [
     { id: 'overview' as TabType, label: 'Visão Geral', icon: LayoutDashboard },
@@ -163,10 +165,7 @@ export const FinancePage: FC = () => {
           
           {/* Botão Nova Transação */}
           <button
-            onClick={() => {
-              // TODO: Implementar ação de nova transação
-              console.log('Nova transação');
-            }}
+            onClick={() => setIsTransactionModalOpen(true)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -204,6 +203,16 @@ export const FinancePage: FC = () => {
           <div>{renderTabContent()}</div>
         </div>
       </PageContainer>
+
+      {/* Modal de Nova Transação */}
+      <CreateTransactionModal
+        isOpen={isTransactionModalOpen}
+        onClose={() => setIsTransactionModalOpen(false)}
+        onSuccess={() => {
+          setIsTransactionModalOpen(false);
+          // Recarregar dados se necessário (os componentes filhos já fazem isso)
+        }}
+      />
     </>
   );
 };

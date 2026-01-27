@@ -18,74 +18,11 @@ export const PatrimonyTab: FC = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isPatrimonyModalOpen, setIsPatrimonyModalOpen] = useState(false);
 
-  // Dados mockados de passivos (dívidas)
-  const mockLiabilities = useMemo(() => [
-    {
-      id: '1',
-      title: 'Cartão de Crédito Nubank',
-      current_value: 2500.00,
-      original_value: 5000.00,
-      amount_paid: 2500.00,
-      owner_type: 'personal' as OwnerType,
-      status: 'active' as const,
-      creditor_name: 'Nubank',
-      creditor_type: 'bank' as const,
-    },
-    {
-      id: '2',
-      title: 'Empréstimo Consignado',
-      current_value: 12000.00,
-      original_value: 20000.00,
-      amount_paid: 8000.00,
-      owner_type: 'personal' as OwnerType,
-      status: 'active' as const,
-      creditor_name: 'Banco do Brasil',
-      creditor_type: 'bank' as const,
-    },
-    {
-      id: '3',
-      title: 'Empréstimo Pessoal',
-      current_value: 3500.00,
-      original_value: 5000.00,
-      amount_paid: 1500.00,
-      owner_type: 'personal' as OwnerType,
-      status: 'active' as const,
-      creditor_name: 'João Silva',
-      creditor_type: 'person' as const,
-    },
-  ], []);
+  // Dados de passivos (dívidas) - zerado (sem dados mockados)
+  const mockLiabilities = useMemo(() => [], []);
 
-  // Dados mockados de ativos (investimentos)
-  const mockAssets = useMemo(() => [
-    {
-      id: '1',
-      title: 'Reserva de Emergência',
-      current_value: 15000.00,
-      type: 'emergency_fund' as const,
-      owner_type: 'personal' as OwnerType,
-    },
-    {
-      id: '2',
-      title: 'Tesouro Direto IPCA+',
-      current_value: 25000.00,
-      type: 'fixed_income' as const,
-      owner_type: 'personal' as OwnerType,
-    },
-    {
-      id: '3',
-      title: 'Ações PETR4',
-      current_value: 8000.00,
-      type: 'stock' as const,
-      owner_type: 'personal' as OwnerType,
-    },
-    {
-      id: '4',
-      title: 'Bitcoin',
-      current_value: 5000.00,
-      type: 'crypto' as const,
-      owner_type: 'personal' as OwnerType,
-    },
-  ], []);
+  // Dados de ativos (investimentos) - zerado (sem dados mockados)
+  const mockAssets = useMemo(() => [], []);
 
   // Filtrar por contexto
   const filteredLiabilities = useMemo(() => 

@@ -47,7 +47,64 @@ export const GoalsCareerPage: FC = () => {
       //   .eq('user_id', user.id)
       //   .single();
       // setCareer(data);
-      setCareer(null);
+      
+      // Dados mockados para demonstração
+      const mockCareer = {
+        role: 'Desenvolvedor Full Stack Sênior',
+        company: 'Tech Solutions Inc.',
+        nextLevel: 'Tech Lead',
+        goals: [
+          {
+            id: '1',
+            title: 'Liderar projeto de migração para microserviços',
+            deadline: '2024-06-30',
+            progress: 65,
+          },
+          {
+            id: '2',
+            title: 'Obter certificação AWS Solutions Architect',
+            deadline: '2024-08-15',
+            progress: 40,
+          },
+          {
+            id: '3',
+            title: 'Mentorar 3 desenvolvedores júnior',
+            deadline: '2024-12-31',
+            progress: 33,
+          },
+          {
+            id: '4',
+            title: 'Publicar artigo técnico sobre arquitetura de sistemas',
+            deadline: '2024-05-20',
+            progress: 80,
+          },
+        ],
+        feedbacks: [
+          {
+            id: '1',
+            date: '2024-03-15',
+            source: 'Gerente de Projetos',
+            type: 'positive',
+            content: 'Excelente trabalho na implementação da nova API. A documentação está muito clara e o código bem estruturado.',
+          },
+          {
+            id: '2',
+            date: '2024-02-28',
+            source: 'Tech Lead',
+            type: 'constructive',
+            content: 'Sugestão: trabalhar mais na comunicação com a equipe durante as sprints. Seria bom compartilhar mais conhecimento técnico.',
+          },
+          {
+            id: '3',
+            date: '2024-02-10',
+            source: 'Colega de Equipe',
+            type: 'positive',
+            content: 'Muito obrigado pela ajuda no debugging do sistema de autenticação. Sua experiência foi fundamental para resolver o problema.',
+          },
+        ],
+      };
+      
+      setCareer(mockCareer);
     } catch (err) {
       console.error('Erro ao carregar dados de carreira:', err);
     } finally {

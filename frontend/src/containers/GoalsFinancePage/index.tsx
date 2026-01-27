@@ -55,7 +55,162 @@ export const GoalsFinancePage: FC = () => {
       //   .select('*')
       //   .eq('user_id', user.id);
       // setFinancialGoals(data || []);
-      setFinancialGoals([]);
+      
+      // Dados mockados para demonstração
+      const mockGoals: any[] = [
+        {
+          id: '1',
+          name: 'Reserva de Emergência',
+          type: 'investment',
+          totalTarget: 50000,
+          currentAmount: 18500,
+          deadline: '2024-12-31',
+          quarters: [
+            {
+              quarter: 1,
+              target: 12500,
+              current: 4500,
+              months: [
+                { month: 1, target: 4167, current: 1500 },
+                { month: 2, target: 4167, current: 1500 },
+                { month: 3, target: 4166, current: 1500 },
+              ],
+            },
+            {
+              quarter: 2,
+              target: 12500,
+              current: 5000,
+              months: [
+                { month: 4, target: 4167, current: 1700 },
+                { month: 5, target: 4167, current: 1600 },
+                { month: 6, target: 4166, current: 1700 },
+              ],
+            },
+            {
+              quarter: 3,
+              target: 12500,
+              current: 5000,
+              months: [
+                { month: 7, target: 4167, current: 1800 },
+                { month: 8, target: 4167, current: 1600 },
+                { month: 9, target: 4166, current: 1600 },
+              ],
+            },
+            {
+              quarter: 4,
+              target: 12500,
+              current: 4000,
+              months: [
+                { month: 10, target: 4167, current: 1500 },
+                { month: 11, target: 4167, current: 1500 },
+                { month: 12, target: 4166, current: 1000 },
+              ],
+            },
+          ],
+        },
+        {
+          id: '2',
+          name: 'Quitar Financiamento do Carro',
+          type: 'debt',
+          totalTarget: 35000,
+          currentAmount: 28000,
+          deadline: '2024-12-31',
+          quarters: [
+            {
+              quarter: 1,
+              target: 8750,
+              current: 8750,
+              months: [
+                { month: 1, target: 2917, current: 2917 },
+                { month: 2, target: 2917, current: 2917 },
+                { month: 3, target: 2916, current: 2916 },
+              ],
+            },
+            {
+              quarter: 2,
+              target: 8750,
+              current: 8750,
+              months: [
+                { month: 4, target: 2917, current: 2917 },
+                { month: 5, target: 2917, current: 2917 },
+                { month: 6, target: 2916, current: 2916 },
+              ],
+            },
+            {
+              quarter: 3,
+              target: 8750,
+              current: 7000,
+              months: [
+                { month: 7, target: 2917, current: 2500 },
+                { month: 8, target: 2917, current: 2000 },
+                { month: 9, target: 2916, current: 2500 },
+              ],
+            },
+            {
+              quarter: 4,
+              target: 8750,
+              current: 3500,
+              months: [
+                { month: 10, target: 2917, current: 1500 },
+                { month: 11, target: 2917, current: 1000 },
+                { month: 12, target: 2916, current: 1000 },
+              ],
+            },
+          ],
+        },
+        {
+          id: '3',
+          name: 'Investimento em Ações',
+          type: 'investment',
+          totalTarget: 100000,
+          currentAmount: 42000,
+          deadline: '2024-12-31',
+          quarters: [
+            {
+              quarter: 1,
+              target: 25000,
+              current: 12000,
+              months: [
+                { month: 1, target: 8333, current: 4000 },
+                { month: 2, target: 8333, current: 4000 },
+                { month: 3, target: 8334, current: 4000 },
+              ],
+            },
+            {
+              quarter: 2,
+              target: 25000,
+              current: 15000,
+              months: [
+                { month: 4, target: 8333, current: 5000 },
+                { month: 5, target: 8333, current: 5000 },
+                { month: 6, target: 8334, current: 5000 },
+              ],
+            },
+            {
+              quarter: 3,
+              target: 25000,
+              current: 10000,
+              months: [
+                { month: 7, target: 8333, current: 3500 },
+                { month: 8, target: 8333, current: 3000 },
+                { month: 9, target: 8334, current: 3500 },
+              ],
+            },
+            {
+              quarter: 4,
+              target: 25000,
+              current: 5000,
+              months: [
+                { month: 10, target: 8333, current: 2000 },
+                { month: 11, target: 8333, current: 2000 },
+                { month: 12, target: 8334, current: 1000 },
+              ],
+            },
+          ],
+        },
+      ];
+      
+      setFinancialGoals(mockGoals);
     } catch (err) {
       console.error('Erro ao carregar metas financeiras:', err);
     } finally {

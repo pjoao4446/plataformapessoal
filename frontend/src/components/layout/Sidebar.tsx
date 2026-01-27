@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard,
@@ -11,7 +11,9 @@ import {
   DollarSign,
   CheckSquare,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Target,
+  UtensilsCrossed
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getTheme } from '../../styles/theme';
@@ -23,75 +25,98 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
 }
 
-interface NavGroup {
+interface MainMenuGroup {
   label: string;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   items: NavItem[];
-  hasSubmenu?: boolean; // Indica se o grupo deve ter submenu ao hover
 }
 
-const navGroups: NavGroup[] = [
+const mainMenuGroups: MainMenuGroup[] = [
   {
-    label: 'Menu Principal',
+    label: 'Gestão financeira',
+    icon: Wallet,
     items: [
       {
-        label: 'Dashboard',
-        path: '/',
-        icon: LayoutDashboard,
+        label: 'Gestão meta financeira',
+        path: '/goals/finance',
+        icon: Target,
+      },
+      {
+        label: 'Gestão operacional financeira',
+        path: '/finance',
+        icon: DollarSign,
       },
     ],
-    hasSubmenu: false,
   },
   {
-    label: 'Gestão de Metas',
+    label: 'Gestão profissional',
+    icon: Briefcase,
     items: [
       {
-        label: 'Financeira',
-        path: '/goals/finance',
-        icon: Wallet,
-      },
-      {
-        label: 'Profissional',
+        label: 'Gestão meta profissional',
         path: '/goals/career',
-        icon: Briefcase,
+        icon: Target,
       },
       {
-        label: 'Empresarial',
-        path: '/goals/business',
+        label: 'Gestão operacional profissional',
+        path: '/professional',
         icon: Building2,
       },
+    ],
+  },
+  {
+    label: 'Gestão empresarial',
+    icon: Building2,
+    items: [
       {
-        label: 'Educacional',
+        label: 'Gestão meta empresarial',
+        path: '/goals/business',
+        icon: Target,
+      },
+    ],
+  },
+  {
+    label: 'Gestão de aprendizado',
+    icon: GraduationCap,
+    items: [
+      {
+        label: 'Gestão meta educação',
         path: '/goals/education',
         icon: GraduationCap,
       },
       {
-        label: 'Leitura',
+        label: 'Gestão meta livros',
         path: '/goals/reading',
         icon: BookOpen,
       },
+    ],
+  },
+  {
+    label: 'Gestão do físico',
+    icon: Dumbbell,
+    items: [
       {
-        label: 'Treinos & Saúde',
+        label: 'Gestão meta treinos',
         path: '/goals/health',
         icon: Dumbbell,
       },
+      {
+        label: 'Gestão meta alimentação',
+        path: '/goals/nutrition',
+        icon: UtensilsCrossed,
+      },
     ],
-    hasSubmenu: true,
   },
   {
-    label: 'Operacional',
+    label: 'Gestão de atividades',
+    icon: CheckSquare,
     items: [
       {
-        label: 'Gestão Financeira',
-        path: '/finance',
-        icon: DollarSign,
-      },
-      {
-        label: 'Gestão de Atividades',
+        label: 'Gestão operacional atividades',
         path: '/tasks',
         icon: CheckSquare,
       },
     ],
-    hasSubmenu: true,
   },
 ];
 
@@ -103,38 +128,28 @@ export function Sidebar() {
   const location = useLocation();
   const { theme } = useTheme();
   const themeColors = getTheme(theme).colors;
-  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
-  const [submenuPosition, setSubmenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const groupRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-  // Calcular posição do submenu quando hoveredGroup mudar
-  useEffect(() => {
-    const updatePosition = () => {
-      if (hoveredGroup && groupRefs.current[hoveredGroup]) {
-        const element = groupRefs.current[hoveredGroup];
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          setSubmenuPosition({
-            top: rect.top,
-            left: rect.left + rect.width + 8, // 0.5rem = 8px
-          });
-        }
-      } else {
-        setSubmenuPosition(null);
-      }
-    };
+  // Verificar se algum item está ativo
+  const isItemActive = (path: string) => location.pathname === path;
+  const checkGroupActive = (group: MainMenuGroup) => {
+    return group.items.some(item => isItemActive(item.path));
+  };
 
-    updatePosition();
-    
-    // Atualizar posição quando a página rolar ou redimensionar
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-    
-    return () => {
-      window.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [hoveredGroup]);
+  // Toggle grupo expandido
+  const toggleGroup = (groupLabel: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupLabel)) {
+        newSet.delete(groupLabel);
+      } else {
+        newSet.add(groupLabel);
+      }
+      return newSet;
+    });
+  };
+
 
   const sidebarStyles: React.CSSProperties = {
     width: '18rem',
@@ -219,152 +234,112 @@ export function Sidebar() {
       <div style={{ flex: 1, position: 'relative', overflow: 'visible' }}>
         <nav style={{ height: '100%', padding: '1rem', position: 'relative', overflow: 'visible' }}>
           <div style={{ height: '100%', overflowY: 'auto', overflowX: 'visible', position: 'relative' }}>
-        {navGroups.map((group) => {
-          const hasSubmenu = group.hasSubmenu ?? false;
-          const isHovered = hoveredGroup === group.label;
-          const hasActiveItem = group.items.some(item => location.pathname === item.path);
+            {/* Menu Principal */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ padding: '0.5rem 0.75rem' }}>
+                <h2 style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  color: themeColors.textMuted,
+                  textTransform: 'none',
+                  letterSpacing: '0.05em',
+                  margin: 0,
+                }}>
+                  Menu principal
+                </h2>
+              </div>
+              <NavLink
+                to="/"
+                style={getNavItemStyles(isItemActive('/'))}
+                {...getHoverStyles(isItemActive('/'))}
+              >
+                <LayoutDashboard style={{ width: '1.25rem', height: '1.25rem', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>Dashboard</span>
+              </NavLink>
+            </div>
 
-          return (
-            <div 
-              key={group.label} 
-              ref={(el) => {
-                if (hasSubmenu) {
-                  groupRefs.current[group.label] = el;
-                }
-              }}
-              style={{ marginBottom: '1.5rem', position: 'relative' }}
-              onMouseEnter={() => hasSubmenu && setHoveredGroup(group.label)}
-              onMouseLeave={() => hasSubmenu && setHoveredGroup(null)}
-            >
-              {hasSubmenu ? (
-                // Grupo com submenu - mostra apenas o título
-                <>
-                  <div 
-                    style={{ 
+            {/* Grupos Principais */}
+            {mainMenuGroups.map((group) => {
+              const GroupIcon = group.icon;
+              const isExpanded = expandedGroups.has(group.label);
+              const hasActiveItem = checkGroupActive(group);
+
+              return (
+                <div 
+                  key={group.label}
+                  ref={(el) => {
+                    groupRefs.current[group.label] = el;
+                  }}
+                  style={{ marginBottom: '1rem', position: 'relative' }}
+                >
+                  {/* Header do Grupo Principal */}
+                  <div
+                    onClick={() => toggleGroup(group.label)}
+                    style={{
                       padding: '0.625rem 0.75rem',
                       borderRadius: '0.5rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      backgroundColor: isHovered || hasActiveItem
+                      backgroundColor: isExpanded || hasActiveItem
                         ? (theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)')
                         : 'transparent',
                       transition: 'all 0.2s',
                     }}
                   >
-                    <h2 style={{
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      color: hasActiveItem ? themeColors.text : themeColors.textMuted,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      margin: 0,
-                    }}>
-                      {group.label}
-                    </h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <GroupIcon style={{ width: '1.25rem', height: '1.25rem', color: hasActiveItem ? themeColors.neon.purple : themeColors.textMuted }} />
+                      <h2 style={{
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: hasActiveItem ? themeColors.text : themeColors.textMuted,
+                        textTransform: 'none',
+                        letterSpacing: '0.05em',
+                        margin: 0,
+                      }}>
+                        {group.label}
+                      </h2>
+                    </div>
                     <ChevronRight 
                       style={{ 
                         width: '1rem', 
                         height: '1rem', 
                         color: themeColors.textMuted,
                         transition: 'transform 0.2s',
-                        transform: isHovered ? 'rotate(90deg)' : 'rotate(0deg)',
+                        transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
                       }} 
                     />
                   </div>
 
-                </>
-              ) : (
-                // Grupo sem submenu - mostra título e itens normalmente
-                <>
-                  {/* Group Header */}
-                  <div style={{ padding: '0.5rem 0.75rem' }}>
-                    <h2 style={{
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      color: themeColors.textMuted,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      margin: 0,
-                    }}>
-                      {group.label}
-                    </h2>
-                  </div>
-
-                  {/* Group Items */}
-                  <div>
-                    {group.items.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = location.pathname === item.path;
-                      const hoverHandlers = getHoverStyles(isActive);
-                      return (
-                        <NavLink
-                          key={item.path}
-                          to={item.path}
-                          style={getNavItemStyles(isActive)}
-                          {...hoverHandlers}
-                        >
-                          <Icon style={{ width: '1.25rem', height: '1.25rem', flexShrink: 0 }} />
-                          <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>{item.label}</span>
-                        </NavLink>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          );
-        })}
+                  {/* Itens Expandidos */}
+                  {isExpanded && (
+                    <div style={{ marginTop: '0.5rem', paddingLeft: '1rem' }}>
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = isItemActive(item.path);
+                        return (
+                          <NavLink
+                            key={item.path}
+                            to={item.path}
+                            style={{
+                              ...getNavItemStyles(isActive),
+                              marginLeft: '0.5rem',
+                              marginBottom: '0.25rem',
+                            }}
+                            {...getHoverStyles(isActive)}
+                          >
+                            <Icon style={{ width: '1rem', height: '1rem', flexShrink: 0 }} />
+                            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>{item.label}</span>
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          
-          {/* Submenu renderizado fora do contexto de overflow */}
-          {hoveredGroup && submenuPosition && (() => {
-            const group = navGroups.find(g => g.label === hoveredGroup);
-            if (!group || !group.hasSubmenu) return null;
-            
-            return (
-              <div
-                style={{
-                  position: 'fixed',
-                  top: `${submenuPosition.top}px`,
-                  left: `${submenuPosition.left}px`,
-                  minWidth: '12rem',
-                  backgroundColor: themeColors.surface,
-                  border: `1px solid ${themeColors.border}`,
-                  borderRadius: '0.75rem',
-                  padding: '0.5rem',
-                  boxShadow: theme === 'dark'
-                    ? '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3)'
-                    : '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                  zIndex: 1000,
-                  animation: 'fadeIn 0.2s ease',
-                  pointerEvents: 'auto',
-                }}
-                onMouseEnter={() => setHoveredGroup(hoveredGroup)}
-                onMouseLeave={() => setHoveredGroup(null)}
-              >
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <NavLink
-                      key={item.path}
-                      to={item.path}
-                      style={{
-                        ...getNavItemStyles(isActive),
-                        marginBottom: '0.25rem',
-                      }}
-                      {...getHoverStyles(isActive)}
-                    >
-                      <Icon style={{ width: '1.25rem', height: '1.25rem', flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>{item.label}</span>
-                    </NavLink>
-                  );
-                })}
-              </div>
-            );
-          })()}
         </nav>
       </div>
 

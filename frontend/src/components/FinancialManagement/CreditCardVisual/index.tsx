@@ -31,6 +31,8 @@ export const CreditCardVisual: FC<CreditCardVisualProps> = ({
       '#FF7A00': 'linear-gradient(135deg, #FF7A00 0%, #FF9500 50%, #FFB84D 100%)', // Inter - Laranja
       '#820AD1': 'linear-gradient(135deg, #820AD1 0%, #A855F7 50%, #C084FC 100%)', // Nubank - Roxo
       '#000000': 'linear-gradient(135deg, #1F2937 0%, #111827 50%, #000000 100%)', // XP - Preto
+      '#FFD700': 'linear-gradient(135deg, #FFD700 0%, #FFED4E 50%, #FFF9C4 100%)', // Amarelo vibrante (will BANK)
+      '#DC2626': 'linear-gradient(135deg, #DC2626 0%, #991B1B 50%, #000000 100%)', // Vermelho-Preto (como cartão da foto)
     };
     return gradients[color] || `linear-gradient(135deg, ${color} 0%, ${color}CC 50%, ${color}99 100%)`;
   };
@@ -153,13 +155,13 @@ export const CreditCardVisual: FC<CreditCardVisualProps> = ({
         </p>
       </div>
 
-      {/* Nome do Titular */}
+      {/* Apelido do Cartão */}
       <div style={{ marginTop: '0.375rem', position: 'relative', zIndex: 1 }}>
         <p style={{ fontSize: '0.5625rem', opacity: 0.8, margin: '0 0 0.125rem 0', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: '500' }}>
-          Titular
+          Apelido do Cartão
         </p>
         <p style={{ fontSize: '0.75rem', fontWeight: '600', margin: 0, textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}>
-          {userName}
+          {card.name || 'Sem apelido'}
         </p>
       </div>
 

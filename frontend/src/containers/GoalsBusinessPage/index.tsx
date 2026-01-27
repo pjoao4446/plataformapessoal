@@ -57,7 +57,148 @@ export const GoalsBusinessPage: FC = () => {
       //   .select('*')
       //   .eq('user_id', user.id);
       // setProjects(data || []);
-      setProjects([]);
+      
+      // Dados mockados para demonstração
+      const mockProjects: Project[] = [
+        {
+          id: '1',
+          name: 'Plataforma E-commerce',
+          title: 'Plataforma E-commerce',
+          description: 'Sistema completo de e-commerce com gestão de produtos, carrinho e checkout',
+          status: 'in_progress',
+          startDate: '2024-01-15',
+          deadline: '2024-08-30',
+          progress: 45,
+          techStack: ['React', 'Node.js', 'PostgreSQL', 'AWS'],
+          milestones: [
+            {
+              id: 'm1',
+              title: 'Setup inicial e arquitetura',
+              description: 'Configurar repositório, CI/CD e definir arquitetura',
+              deadline: '2024-02-15',
+              completed: true,
+              completedDate: '2024-02-10',
+            },
+            {
+              id: 'm2',
+              title: 'Sistema de autenticação',
+              description: 'Implementar login, registro e recuperação de senha',
+              deadline: '2024-03-30',
+              completed: true,
+              completedDate: '2024-03-25',
+            },
+            {
+              id: 'm3',
+              title: 'Catálogo de produtos',
+              description: 'CRUD de produtos com busca e filtros',
+              deadline: '2024-05-15',
+              completed: false,
+            },
+            {
+              id: 'm4',
+              title: 'Carrinho de compras',
+              description: 'Adicionar, remover e atualizar itens no carrinho',
+              deadline: '2024-06-30',
+              completed: false,
+            },
+            {
+              id: 'm5',
+              title: 'Sistema de pagamento',
+              description: 'Integração com gateway de pagamento',
+              deadline: '2024-08-15',
+              completed: false,
+            },
+          ],
+        },
+        {
+          id: '2',
+          name: 'App de Gestão Financeira',
+          title: 'App de Gestão Financeira',
+          description: 'Aplicativo mobile para controle de finanças pessoais',
+          status: 'mvp',
+          startDate: '2024-02-01',
+          deadline: '2024-07-31',
+          progress: 70,
+          techStack: ['React Native', 'Firebase', 'TypeScript'],
+          revenue: 2500,
+          milestones: [
+            {
+              id: 'm6',
+              title: 'MVP - Funcionalidades básicas',
+              description: 'Cadastro, transações e relatórios simples',
+              deadline: '2024-04-30',
+              completed: true,
+              completedDate: '2024-04-25',
+            },
+            {
+              id: 'm7',
+              title: 'Sistema de categorias',
+              description: 'Gestão de categorias de receitas e despesas',
+              deadline: '2024-05-31',
+              completed: true,
+              completedDate: '2024-05-28',
+            },
+            {
+              id: 'm8',
+              title: 'Gráficos e relatórios avançados',
+              description: 'Dashboard com gráficos e análises',
+              deadline: '2024-06-30',
+              completed: false,
+            },
+            {
+              id: 'm9',
+              title: 'Lançamento na App Store',
+              description: 'Publicar app nas lojas',
+              deadline: '2024-07-31',
+              completed: false,
+            },
+          ],
+        },
+        {
+          id: '3',
+          name: 'SaaS de Gestão de Projetos',
+          title: 'SaaS de Gestão de Projetos',
+          description: 'Plataforma web para gestão de projetos e equipes',
+          status: 'idea',
+          startDate: '2024-06-01',
+          deadline: '2024-12-31',
+          progress: 5,
+          techStack: ['Next.js', 'Prisma', 'PostgreSQL', 'Stripe'],
+          milestones: [
+            {
+              id: 'm10',
+              title: 'Pesquisa de mercado',
+              description: 'Validar ideia e identificar concorrentes',
+              deadline: '2024-06-30',
+              completed: true,
+              completedDate: '2024-06-20',
+            },
+            {
+              id: 'm11',
+              title: 'Protótipo de alta fidelidade',
+              description: 'Criar wireframes e protótipo no Figma',
+              deadline: '2024-07-31',
+              completed: false,
+            },
+            {
+              id: 'm12',
+              title: 'Desenvolvimento do MVP',
+              description: 'Implementar funcionalidades core',
+              deadline: '2024-10-31',
+              completed: false,
+            },
+            {
+              id: 'm13',
+              title: 'Beta testing',
+              description: 'Testar com usuários beta',
+              deadline: '2024-11-30',
+              completed: false,
+            },
+          ],
+        },
+      ];
+      
+      setProjects(mockProjects);
     } catch (err) {
       console.error('Erro ao carregar projetos:', err);
     } finally {

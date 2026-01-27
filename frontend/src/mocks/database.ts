@@ -93,10 +93,12 @@ export interface Book {
   title: string;
   author: string;
   coverUrl?: string;
-  status: 'want_to_read' | 'reading' | 'completed';
+  status: 'want_to_read' | 'reading' | 'completed' | 'wishlist';
   rating?: number;
   pages?: number;
   currentPage?: number;
+  pagesRead?: number;
+  totalPages?: number;
   startedDate?: string;
   completedDate?: string;
 }
@@ -126,7 +128,7 @@ export interface CareerGoal {
   }[];
 }
 
-export type ProjectStatus = 'planning' | 'in_progress' | 'paused' | 'completed' | 'cancelled';
+export type ProjectStatus = 'planning' | 'in_progress' | 'paused' | 'completed' | 'cancelled' | 'idea' | 'mvp';
 
 export interface Milestone {
   id: string;
@@ -140,25 +142,32 @@ export interface Milestone {
 export interface Project {
   id: string;
   name: string;
+  title?: string;
   description: string;
   status: ProjectStatus;
   startDate: string;
   deadline: string;
   milestones: Milestone[];
   progress: number;
+  techStack?: string[];
+  revenue?: number;
 }
 
-export type SkillCategory = 'language' | 'tech' | 'soft' | 'certification';
+export type SkillCategory = 'language' | 'tech' | 'soft' | 'certification' | 'soft_skill' | 'general';
 
 export interface Skill {
   id: string;
   name: string;
+  title?: string;
   category: SkillCategory;
   level: number;
   maxLevel: number;
   hoursStudied: number;
   lastStudied?: string;
   description?: string;
+  currentLevelLabel?: string;
+  targetLevel?: number;
+  nextMilestone?: string;
 }
 
 // ============================================
@@ -213,6 +222,6 @@ export function calculateProjectProgress(project: Project): number {
   return Math.round((completed / project.milestones.length) * 100);
 }
 
-export function getTotalHoursStudied(): number {
-  return MOCK_SKILLS.reduce((total, skill) => total + skill.hoursStudied, 0);
+export function getTotalHoursStudied(skills: Skill[]): number {
+  return skills.reduce((total, skill) => total + (skill.hoursStudied || 0), 0);
 }
